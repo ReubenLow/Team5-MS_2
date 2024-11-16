@@ -5,20 +5,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import argparse
 from scipy.stats import shapiro, kstest, norm, probplot, chi2_contingency
-# from sklearn.impute import SimpleImputer
-# from sklearn.preprocessing import OneHotEncoder, PolynomialFeatures, StandardScaler
-# from sklearn.compose import ColumnTransformer
-# from sklearn.pipeline import Pipeline
-# from sklearn import neural_network
-# from sklearn.neural_network import MLPClassifier
-# from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
-# from sklearn.neighbors import KNeighborsClassifier
-# from sklearn.svm import SVC, LinearSVC
-# from sklearn.tree import DecisionTreeClassifier
-# from sklearn.naive_bayes import GaussianNB
-# from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
-# from sklearn.linear_model import LogisticRegression, Ridge, Perceptron, SGDClassifier
-# from sklearn.model_selection import cross_val_score, StratifiedShuffleSplit
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import (accuracy_score, log_loss, mean_squared_error, confusion_matrix,
                              precision_score, recall_score, auc, roc_curve, roc_auc_score,
@@ -28,6 +14,7 @@ from sklearn.metrics import classification_report
 from sklearn.calibration import calibration_curve
 import configparser
 import joblib
+from sklearn.preprocessing import label_binarize
 
 # Function to load folder paths from config
 def load_paths(config_file):
@@ -53,7 +40,7 @@ def select_testing_file(input_folder):
 
 def load_data(file_path):
     data = pd.read_csv(file_path)
-    target_col = "Survived"
+    target_col = "Obesity_Level"
     X_test = data.drop(columns=[target_col])  
     y_test = data[target_col]  
     return X_test, y_test
@@ -74,8 +61,93 @@ def preprocess_test_data(X_test, training_features):
     X_test = X_test[training_features]
     return X_test
 
-# def evaluate_model(model, X_test, y_test, output_dir):
 def evaluate_model(model, X_test, y_test, output_dir, feature_names):
+    y_pred = model.predict(X_test)
+    y_prob = model.predict_proba(X_test) if hasattr(model, "predict_proba") else None
+
+    # Validate test dataset classes
+    unique_classes = np.unique(y_test)
+    print(f"Unique classes in test set: {unique_classes}")
+
+    # Check if the target is binary or multiclass
+    is_multiclass = len(unique_classes) > 2
+
+    # Metrics
+    mse = mean_squared_error(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+
+    # Create directory for the model if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # ROC Curve and AUC for binary or multiclass
+    if y_prob is not None:
+        if is_multiclass:
+            print("Handling multiclass ROC curves...")
+            y_test_bin = label_binarize(y_test, classes=unique_classes)
+            n_classes = y_test_bin.shape[1]
+
+            # Compute ROC curve and AUC for each class
+            plt.figure()
+            for i in range(n_classes):
+                fpr, tpr, _ = roc_curve(y_test_bin[:, i], y_prob[:, i])
+                roc_auc = auc(fpr, tpr)
+                plt.plot(fpr, tpr, lw=2, label=f'Class {unique_classes[i]} (AUC = {roc_auc:.2f})')
+
+            plt.plot([0, 1], [0, 1], color='gray', linestyle='--')
+            plt.title("Multiclass ROC Curve")
+            plt.xlabel("False Positive Rate")
+            plt.ylabel("True Positive Rate")
+            plt.legend(loc="best")
+            plt.savefig(os.path.join(output_dir, "multiclass_roc_curve.png"))
+            plt.close()
+        else:
+            print("Plotting binary ROC curve...")
+            RocCurveDisplay.from_predictions(y_test, y_prob[:, 1])
+            plt.title("ROC Curve")
+            plt.savefig(os.path.join(output_dir, "roc_curve.png"))
+            plt.close()
+
+    # Confusion Matrix
+    cm = confusion_matrix(y_test, y_pred)
+    ConfusionMatrixDisplay(cm).plot()
+    plt.title("Confusion Matrix")
+    plt.savefig(os.path.join(output_dir, "confusion_matrix.png"))
+    plt.close()
+
+    # Metrics dictionary
+    # metrics = {
+    #     'accuracy': accuracy_score(y_test, y_pred),
+    #     'precision': precision_score(y_test, y_pred, average="macro", zero_division=0),
+    #     'recall': recall_score(y_test, y_pred, average="macro", zero_division=0),
+    #     'f1_score': f1_score(y_test, y_pred, average="macro", zero_division=0),
+    #     'roc_auc': None if y_prob is None else (
+    #         roc_auc_score(y_test, y_prob, average="macro", multi_class="ovr") if is_multiclass else roc_auc_score(y_test, y_prob[:, 1])
+    #     ),
+    #     'mse': mse,
+    #     'mae': mae,
+    #     'rmse': rmse,
+    #     'confusion_matrix': cm.tolist(),
+    #     'classification_report': classification_report(y_test, y_pred, zero_division=0)
+    # }
+    metrics = {
+        'accuracy': accuracy_score(y_test, y_pred),
+        'precision': precision_score(y_test, y_pred, average="macro", zero_division=0),
+        'recall': recall_score(y_test, y_pred, average="macro", zero_division=0),
+        'f1_score': f1_score(y_test, y_pred, average="macro", zero_division=0),
+        'roc_auc': None if y_prob is None else (
+            roc_auc_score(y_test, y_prob, average="macro", multi_class="ovr") if is_multiclass else roc_auc_score(y_test, y_prob[:, 1])
+        ),
+        'mse': mse,
+        'mae': mae,
+        'rmse': rmse,
+        'confusion_matrix': cm.tolist(),
+        'classification_report': classification_report(y_test, y_pred, zero_division=0)
+    }
+
+    return metrics
+
+# def evaluate_model(model, X_test, y_test, output_dir, feature_names):
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
 
@@ -83,11 +155,6 @@ def evaluate_model(model, X_test, y_test, output_dir, feature_names):
     mse = mean_squared_error(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
     rmse = np.sqrt(mse)
-
-    # Print out the metrics
-    # print(f"Mean Squared Error (MSE): {mse:.4f}")
-    # print(f"Mean Absolute Error (MAE): {mae:.4f}")
-    # print(f"Root Mean Squared Error (RMSE): {rmse:.4f}")
 
     # Create directory for the model if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -179,34 +246,6 @@ def evaluate_model(model, X_test, y_test, output_dir, feature_names):
     else:
         print(f"No feature importance or coefficients available for model {model}.")
 
-    # # Feature Importance or Coefficients (for applicable models)
-    # if hasattr(model, 'feature_importances_'):
-    #     importances = model.feature_importances_
-    #     indices = np.argsort(importances)[::-1]
-    #     plt.figure()
-    #     plt.title("Feature Importances")
-    #     plt.bar(range(X_test.shape[1]), importances[indices], align="center")
-    #     plt.xticks(range(X_test.shape[1]), [X_test.columns[i] for i in indices], rotation=90)
-    #     plt.tight_layout()  # Adjust layout to prevent label cutoff
-    #     feature_importance_path = os.path.join(output_dir, "feature_importance.png")
-    #     plt.savefig(feature_importance_path)
-    #     plt.close()
-    #     print(f"Feature importance plot saved for {model} at {feature_importance_path}")
-    # elif hasattr(model, 'coef_'):
-    #     importances = np.abs(model.coef_).flatten()
-    #     indices = np.argsort(importances)[::-1]
-    #     plt.figure()
-    #     plt.title("Feature Coefficients (Importance)")
-    #     plt.bar(range(X_test.shape[1]), importances[indices], align="center")
-    #     plt.xticks(range(X_test.shape[1]), [X_test.columns[i] for i in indices], rotation=90)
-    #     plt.tight_layout()
-    #     feature_coefficients_path = os.path.join(output_dir, "feature_coefficients.png")
-    #     plt.savefig(feature_coefficients_path)
-    #     plt.close()
-    #     print(f"Feature coefficients plot saved for {model} at {feature_coefficients_path}")
-    # else:
-    #     print(f"No feature importance or coefficients available for model {model}.")
-
     # Heatmap of Predictions vs True Values
     sns.heatmap(pd.DataFrame({"True": y_test, "Predicted": y_pred}).pivot_table(index='True', columns='Predicted', aggfunc=len, fill_value=0), annot=True, fmt="d", cmap="YlGnBu")
     plt.title("Heatmap of Predictions vs True Values")
@@ -277,11 +316,6 @@ def main(config_file="config.txt"):
 
     X_test, y_test = load_data(test_file)
 
-    # models = load_models(paths["model_folder_predict"])
-    # if not models:
-    #     print("No models found in the specified model folder.")
-    #     return
-
     # Select models to use for prediction
     models = select_models(paths["model_folder_predict"])
     if not models:
@@ -310,10 +344,14 @@ def main(config_file="config.txt"):
         print("Classification Report:")
         print(metrics['classification_report'])
         print(f"Accuracy       : {metrics['accuracy']:.4f}")
-        if isinstance(metrics['roc_auc'], str):
-            print(f"ROC AUC        : {metrics['roc_auc']}")
-        else:
+        # if isinstance(metrics['roc_auc'], str):
+        #     print(f"ROC AUC        : {metrics['roc_auc']}")
+        # else:
+        #     print(f"ROC AUC        : {metrics['roc_auc']:.4f}")
+        if metrics['roc_auc'] is not None:
             print(f"ROC AUC        : {metrics['roc_auc']:.4f}")
+        else:
+            print("ROC AUC        : Not applicable (e.g., no probabilities available).")
         print(f"MSE            : {metrics['mse']:.4f}")
         print(f"MAE            : {metrics['mae']:.4f}")
         print(f"RMSE           : {metrics['rmse']:.4f}")

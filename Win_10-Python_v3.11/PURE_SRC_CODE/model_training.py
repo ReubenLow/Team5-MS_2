@@ -268,7 +268,7 @@ def main(config_file="config.txt"):
     
     # Separate features and target variable
     # target_col = input("Enter the target column (label) by name for training (e.g., 'Survived'): ")
-    target_col = "Survived"
+    target_col = "Obesity_Level"
     if target_col not in data.columns:
         raise ValueError(f"The specified target column '{target_col}' does not exist in the data.")
 

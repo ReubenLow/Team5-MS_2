@@ -8,6 +8,7 @@ from scipy.stats import shapiro, kstest, norm, probplot, chi2_contingency
 import argparse
 import configparser
 import subprocess
+from sklearn.model_selection import train_test_split
 pd.set_option('display.max_rows', None)  # Display all rows
 
 # Function to open config file for review
@@ -116,6 +117,37 @@ def main(config_file="config.txt", selected_file=None):
     target_column_name = "target"
     if add_target:
         target_column_name = input("Enter the name of the target column: ")
+
+    # Ask the user if they want to split the data into training and testing sets
+    split_data = input("Do you want to split the data into training and testing sets? (yes/no): ").strip().lower() == "yes"
+    if split_data:
+        try:
+            test_size = float(input("Enter the test size (e.g. 0.2 for 20% test size): "))
+            random_state = int(input("Enter the random state for splitting: "))
+            print(f"Splitting data into training and testing sets with test size {test_size} and random state {random_state}...")
+        except ValueError:
+            print("Invalid input. Using default test size of 0.2 and random state of 42.")
+            test_size = 0.2
+            random_state = 42
+            
+    # Split the data into training and testing sets
+    # X = data.drop(target_column_name, axis=1)
+    # y = data[target_column_name]
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+    # print(f"Training set shape: {X_train.shape}, Testing set shape: {X_test.shape}")
+    train_data, test_data = train_test_split(data, test_size=test_size, random_state=random_state)
+
+    # Generate filenames for the split datasets
+    train_output_path = os.path.join(output_folder, f"train_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
+    test_output_path = os.path.join(output_folder, f"test_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
+
+    # Save the split datasets
+    train_data.to_csv(train_output_path, index=False)
+    test_data.to_csv(test_output_path, index=False)
+
+    print(f"Saved training data to {train_output_path}")
+    print(f"Saved testing data to {test_output_path}")
+
 
     # Clean the data
     cleaned_data = clean_data(data, drop_columns=drop_columns, add_target=add_target, target_column_name=target_column_name)

@@ -1,0 +1,64 @@
+[RandomForest]
+n_estimators = 300
+max_depth = 10
+min_samples_split = 2
+min_samples_leaf = 1
+
+[AdaBoost]
+n_estimators = 200
+learning_rate = 0.5
+
+[GradientBoosting]
+n_estimators = 200
+learning_rate = 0.05
+max_depth = 20
+min_samples_split = 10
+min_samples_leaf = 5
+
+[KNeighbors]
+n_neighbors = 8
+algorithm = 'auto'
+
+[SVC]
+kernel = 'rbf'
+gamma = 'scale'
+
+[DecisionTree]
+max_depth = 15
+min_samples_split = 5
+min_samples_leaf = 2
+
+[LogisticRegression]
+max_iter = 200
+penalty = l2
+
+[NaiveBayes]
+var_smoothing = 1e-9
+
+[NeuralNetwork]
+hidden_layer_sizes = 100, 100, 100, 100
+max_iter = 800
+learning_rate_init = 0.001
+alpha = 0.0001
+
+[XGBoost]
+use_label_encoder = False
+eval_metric = logloss
+n_estimators = 500
+learning_rate = 0.05
+max_depth = 8
+subsample = 0.8
+
+[Paths]
+input_folder_clean = ../OTH_DATA/training_data
+output_folder_clean = ../OTH_DATA/cleaned_data
+cleaned_file_suffix = _v1
+input_folder_eda = ../OTH_DATA/cleaned_data
+output_folder_eda = ../EDA_DATA
+eda_file_suffix = _v1
+input_folder = ../OTH_DATA/cleaned_data
+output_folder = ../ML_DATA/model_outputs
+model_name_suffix = _demo
+input_folder_predict = ../OTH_DATA/cleaned_data
+model_folder_predict = ../ML_DATA/model_outputs
+output_folder_predict = ../ML_DATA/predict_outputs

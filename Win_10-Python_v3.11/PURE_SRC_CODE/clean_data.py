@@ -134,33 +134,62 @@ def main(config_file="config.txt", selected_file=None):
     split_data = input("Do you want to split the data into training and testing sets? (yes/no): ").strip().lower() == "yes"
     if split_data:
         try:
-            test_size = float(input("Enter the test size (e.g. 0.2 for 20% test size): "))
-            random_state = int(input("Enter the random state for splitting: "))
-            print(f"Splitting data into training and testing sets with test size {test_size} and random state {random_state}...")
-        except ValueError:
-            print("Invalid input. Using default test size of 0.2 and random state of 42.")
-            test_size = 0.2
-            random_state = 42
+            # test_size = float(input("Enter the test size (e.g. 0.2 for 20% test size): "))
+            # random_state = int(input("Enter the random state for splitting: "))
+            # print(f"Splitting data into training and testing sets with test size {test_size} and random state {random_state}...")
+            train_percentage = float(input("Enter the percentage for training data (e.g., 80 for 80%): ")) / 100
+            validation_percentage = float(input("Enter the percentage for validation data (e.g., 10 for 10%): ")) / 100
+            test_percentage = float(input("Enter the percentage for test data (e.g., 10 for 10%): ")) / 100
+
+            # Check if the percentages add up to 1 (or 100%)
+            if not abs(train_percentage + validation_percentage + test_percentage - 1) < 1e-5:
+                raise ValueError("Percentages must add up to 100%!")
+        except ValueError as e:
+            # print("Invalid input. Using default test size of 0.2 and random state of 42.")
+            # test_size = 0.2
+            # random_state = 42
+            print(f"Invalid input: {e}")
+            print("Using default split: 70% train, 15% validation, 15% test.")
+            train_percentage, validation_percentage, test_percentage = 0.7, 0.15, 0.15
+
+    # Split the data dynamically based on user input
+    if validation_percentage == 0:
+        # No validation set, split into training and testing only
+        train_data, test_data = train_test_split(cleaned_data, test_size=test_percentage, random_state=42)
+        validation_data = None  # No validation data
+    else:
+        # Perform the first split for training
+        train_data, temp_data = train_test_split(cleaned_data, test_size=(validation_percentage + test_percentage), random_state=42)
+
+        # Split the remaining data into validation and test sets
+        validation_data, test_data = train_test_split(temp_data, test_size=(test_percentage / (validation_percentage + test_percentage)), random_state=42)
             
     # Split the data into training and testing sets
-    train_data, test_data = train_test_split(cleaned_data, test_size=test_size, random_state=random_state)
+    # train_data, test_data = train_test_split(cleaned_data, test_size=test_size, random_state=random_state)
+    # Perform the first split to separate training data
+    # train_data, temp_data = train_test_split(cleaned_data, test_size=(validation_percentage + test_percentage), random_state=42) # v1
+
+    # Split the remaining data into validation and test sets
+    # validation_data, test_data = train_test_split(temp_data, test_size=(test_percentage / (validation_percentage + test_percentage)), random_state=42) # v1
 
     # Generate filenames for the split datasets
     train_output_path = os.path.join(output_folder, f"train_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
     test_output_path = os.path.join(output_folder, f"test_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
-
-    # columns_to_drop = ["Patient ID", "Unnamed: 18"]
-
-    # Drop the 'Patient ID' column for training and testing data
-    # train_data = train_data.drop(columns=[col for col in columns_to_drop if col in train_data.columns], errors="ignore")
-    # test_data = test_data.drop(columns=[col for col in columns_to_drop if col in test_data.columns], errors="ignore")
+    # validation_output_path = os.path.join(output_folder, f"validation_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
 
     # Save the split datasets
     train_data.to_csv(train_output_path, index=False)
     test_data.to_csv(test_output_path, index=False)
+    # validation_data.to_csv(validation_output_path, index=False)
 
     print(f"Saved training data to {train_output_path}")
     print(f"Saved testing data to {test_output_path}")
+    # print(f"Saved validation data to {validation_output_path}")
+
+    if validation_data is not None:
+        validation_output_path = os.path.join(output_folder, f"validation_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
+        validation_data.to_csv(validation_output_path, index=False)
+        print(f"Saved validation data to {validation_output_path}")
 
 
 # if __name__ == "__main__":

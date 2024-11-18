@@ -15,6 +15,8 @@ from sklearn.calibration import calibration_curve
 import configparser
 import joblib
 from sklearn.preprocessing import label_binarize
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill
 
 # Function to load folder paths from config
 def load_paths(config_file):
@@ -61,9 +63,50 @@ def preprocess_test_data(X_test, training_features):
     X_test = X_test[training_features]
     return X_test
 
+def output_predictions_with_formatting(X_test, y_test, y_pred, output_path):
+    # Add actual and predicted columns to the dataset
+    X_test["Actual_Obesity_Level"] = y_test
+    X_test["Predicted_Obesity_Level"] = y_pred
+
+    # Create a workbook and worksheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Predictions"
+
+    # Add header row
+    headers = list(X_test.columns)
+    ws.append(headers)
+
+    # Define styles for correct and incorrect predictions
+    correct_fill = PatternFill(start_color="00FF00", end_color="00FF00", fill_type="solid")  # Green
+    incorrect_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")  # Red
+
+    # Add data rows with conditional formatting
+    for i, row in X_test.iterrows():
+        ws.append(row.tolist())
+        # Apply formatting to the last column (Predicted_Obesity_Level)
+        predicted_cell = ws.cell(row=i + 2, column=len(headers))  # Adjust for header row
+        if row["Actual_Obesity_Level"] == row["Predicted_Obesity_Level"]:
+            predicted_cell.fill = correct_fill
+        else:
+            predicted_cell.fill = incorrect_fill
+
+    # Save the Excel file
+    wb.save(output_path)
+    print(f"Predictions with formatting saved to {output_path}")
+
+
 def evaluate_model(model, X_test, y_test, output_dir, feature_names):
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test) if hasattr(model, "predict_proba") else None
+
+    # Generate Excel output with conditional formatting
+    output_predictions_with_formatting(
+        X_test.copy(),  # Pass a copy to avoid modifying the original
+        y_test,
+        y_pred,
+        os.path.join(output_dir, "predictions_with_formatting.xlsx")
+    )
 
     # Validate test dataset classes
     unique_classes = np.unique(y_test)

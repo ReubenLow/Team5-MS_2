@@ -13,6 +13,8 @@ from scipy.stats import shapiro, kstest, norm, probplot, chi2_contingency
 import argparse
 import configparser
 import subprocess
+import textwrap
+
 pd.set_option('display.max_rows', None)  # Display all rows
 
 # Function to open config file for review
@@ -57,184 +59,41 @@ def calculate_bmi(data):
     print("BMI column successfully added.")
     return data
 
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import os
-
-
-def create_obesity_summary_table(data):
+def add_readable_columns(data):
     """
-    Creates a summary table for each Obesity_Level, calculating:
-    - Count
-    - Mean BMI
-    - Standard Deviation (std, calculated manually)
-    - Minimum BMI
-    - 25th Percentile
-    - 50th Percentile (Median)
-    - 75th Percentile
-    - Maximum BMI
-    Saves the table as a PNG file with white background and black text.
+    Adds two new columns to the DataFrame with readable string labels for MTRANS and Obesity_Level.
 
     Parameters:
-    - data: pandas DataFrame containing the dataset.
+    - data: pandas DataFrame containing the dataset with MTRANS and Obesity_Level columns.
+
+    Returns:
+    - data: DataFrame with the new readable columns.
     """
-    # Dynamically set the output folder relative to the script location
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_folder = os.path.join(script_dir, "../EDA_DATA/obesity_summary_table")
+    # Define the mapping dictionaries
+    mtrans_mapping = {
+        0: "Automobile",
+        1: "Bike",
+        2: "Motorbike",
+        3: "Public_Transportation",
+        4: "Walking"
+    }
 
-    # Ensure the output folder exists
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+    obesity_level_mapping = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
 
-    # Calculate the required summary statistics grouped by Obesity_Level
-    grouped = data.groupby("Obesity_Level")["BMI"]
-    summary_table = pd.DataFrame({
-        "count": grouped.size(),
-        "mean": grouped.mean(),
-        "std": grouped.apply(lambda x: ((x - x.mean()) ** 2).sum() / (len(x) - 1)) ** 0.5,
-        "min": grouped.min(),
-        "percentile_25": grouped.quantile(0.25),
-        "percentile_50": grouped.median(),
-        "percentile_75": grouped.quantile(0.75),
-        "max": grouped.max()
-    }).reset_index()
+    # Add new columns with readable strings
+    data["MTRANS_Readable"] = data["MTRANS"].map(mtrans_mapping)
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_mapping)
 
-    # Round all numerical values to 3 decimal places
-    summary_table = summary_table.round(3)
-
-    # Save the table as a PNG
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.axis("tight")
-    ax.axis("off")
-    table = ax.table(
-        cellText=summary_table.values,
-        colLabels=summary_table.columns,
-        cellLoc="center",
-        loc="center",
-    )
-
-    # Customize table style: white background with black text
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1.2, 1.2)  # Adjust size of the table
-    for (row, col), cell in table.get_celld().items():
-        cell.set_edgecolor("black")
-        cell.set_facecolor("white")
-        cell.set_text_props(color="black")
-
-    plt.title("Summary Table for Obesity Levels", fontsize=14, pad=10)
-    plt.tight_layout()
-
-    # Save the plot
-    output_file = os.path.join(output_folder, "obesity_summary_table.png")
-    plt.savefig(output_file)
-    plt.close()
-
-    print(f"Summary table saved as PNG in {output_file}")
-
-    # Return the summary table as a DataFrame
-    return summary_table
-
-
-
-def plot_mean_bmi_by_obesity_level(data):
-    """
-    Calculates the mean BMI for each Obesity_Level and plots a sorted bar graph.
-    Includes mean BMI values as annotations on the bars.
-
-    Parameters:
-    - data: pandas DataFrame containing the dataset.
-    """
-    # Dynamically set the output folder relative to the script location
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_folder = os.path.join(script_dir, "../EDA_DATA/bmi_analysis")
-
-    # Ensure the output folder exists
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-
-    # Calculate mean BMI for each Obesity_Level and sort by mean BMI
-    mean_bmi = (
-        data.groupby("Obesity_Level")["BMI"]
-        .mean()
-        .sort_values(ascending=True)
-        .reset_index()
-    )
-
-    # Plot the bar graph
-    plt.figure(figsize=(10, 6))
-    ax = sns.barplot(
-        x="Obesity_Level", y="BMI", data=mean_bmi, palette="viridis", order=mean_bmi["Obesity_Level"]
-    )
-
-    # Add annotations on top of the bars
-    for idx, value in enumerate(mean_bmi["BMI"]):
-        ax.text(idx, value + 0.2, f"{value:.2f}", color="black", ha="center", fontsize=10)
-
-    # Set titles and labels
-    plt.title("Mean BMI by Obesity Level (Sorted)", fontsize=14)
-    plt.xlabel("Obesity Level")
-    plt.ylabel("Mean BMI")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-
-    # Save the plot
-    output_file = os.path.join(output_folder, "mean_bmi_by_obesity_level_sorted.png")
-    plt.savefig(output_file)
-    plt.close()
-
-    print(f"Mean BMI bar graph saved in {output_file}")
-
-
-
-
-
-# Function to plot distributions for all specified columns
-def plot_distributions(data):
-
-    # Columns to plot distributions for
-    columns = [
-        "Gender", "Age", "Height", "Weight", "fam_hist_over-wt", "FAVC", 
-        "FCVC", "NCP", "CAEC", "SMOKE", "CH2O", "SCC", "FAF", "TUE", 
-        "CALC", "MTRANS", "Obesity_Level"
-    ]
-    """
-    Plots the distributions of specified columns.
-    
-    Parameters:
-    - data: pandas DataFrame containing the dataset.
-    - columns: List of column names to plot distributions for.
-    - output_folder: Folder to save the plots.
-    """
-    # Dynamically set the output folder relative to the script location
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_folder = os.path.join(script_dir, "../EDA_DATA/distribution plots")
-
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-    
-    for column in columns:
-        plt.figure(figsize=(8, 6))
-        
-        # Choose appropriate plot type based on column type
-        if data[column].dtype == 'object' or data[column].nunique() < 10:
-            # Bar plot for categorical variables
-            sns.countplot(data=data, x=column, palette="pastel")
-            plt.title(f'Distribution of {column}')
-            plt.ylabel('Count')
-        else:
-            # Histogram for numerical variables
-            sns.histplot(data[column], kde=True, bins=30, color="skyblue", edgecolor="black")
-            plt.title(f'Distribution of {column}')
-            plt.ylabel('Density')
-        
-        plt.xlabel(column)
-        plt.tight_layout()
-        
-        # Save plot to the output folder
-        plt.savefig(os.path.join(output_folder, f'{column}_distribution.png'))
-        plt.close()
+    print("Added readable columns: MTRANS_Readable and Obesity_Level_Readable.")
+    return data
 
 
 def list_files(directory):
@@ -296,7 +155,7 @@ def main(config_file="config.txt"):
     data = pd.read_csv(input_path)
     # Add the BMI column
     data = calculate_bmi(data)
-
+    data = add_readable_columns(data)
     # Call the functions for EDA
     plot_distributions(data)
     plot_box_plots(data)
@@ -306,6 +165,7 @@ def main(config_file="config.txt"):
     plot_individual_age_height_weight_relationships(data)
     plot_mean_bmi_by_obesity_level(data)
     create_obesity_summary_table(data)
+    plot_combined_mtrans_by_obesity_level(data)
     print(f"EDA graphs saved in {output_folder}")
     
 
@@ -357,6 +217,47 @@ def plot_box_plots(data):
     plt.close()
 
     print(f"Box plots saved in {output_folder}")
+
+
+def plot_combined_mtrans_by_obesity_level(data):
+    """
+    Plots a combined bar graph for all MTRANS types across each Obesity_Level.
+    Each group of bars represents the distribution of MTRANS types for an Obesity_Level,
+    using the 'MTRANS_Readable' and 'Obesity_Level_Readable' columns for better readability.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset with 'MTRANS_Readable' and 'Obesity_Level_Readable' columns.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/mtrans_combined_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Count the number of occurrences of MTRANS_Readable types for each Obesity_Level_Readable
+    mtrans_counts = data.groupby(["Obesity_Level_Readable", "MTRANS_Readable"]).size().unstack(fill_value=0)
+
+    # Plot the grouped bar chart
+    plt.figure(figsize=(12, 8))
+    mtrans_counts.plot(kind="bar", figsize=(12, 8), width=0.8)
+
+    # Customize the plot
+    plt.title("Distribution of MTRANS by Obesity Level", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=45)
+    plt.legend(title="Mode of Transportation (MTRANS)", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "combined_mtrans_distribution_readable.png")
+    plt.savefig(output_file)
+    plt.close()
+
+    print(f"Combined bar graph saved in {output_file}")
+
 
 
 
@@ -509,7 +410,219 @@ def plot_individual_age_height_weight_relationships(data):
 
     print(f"Scatter plots saved in {output_folder}")
 
+def create_obesity_summary_table(data):
+    """
+    Creates a summary table for each Obesity_Level_Readable, calculating:
+    - Count
+    - Mean BMI
+    - Standard Deviation (std, calculated manually)
+    - Minimum BMI
+    - 25th Percentile
+    - 50th Percentile (Median)
+    - 75th Percentile
+    - Maximum BMI
+    Saves the table as a PNG file with white background and black text.
 
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/obesity_summary_table")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Calculate the required summary statistics grouped by Obesity_Level_Readable
+    grouped = data.groupby("Obesity_Level_Readable")["BMI"]
+    summary_table = pd.DataFrame({
+        "count": grouped.size(),
+        "mean": grouped.mean(),
+        "std": grouped.apply(lambda x: ((x - x.mean()) ** 2).sum() / (len(x) - 1)) ** 0.5,
+        "min": grouped.min(),
+        "percentile_25": grouped.quantile(0.25),
+        "percentile_50": grouped.median(),
+        "percentile_75": grouped.quantile(0.75),
+        "max": grouped.max()
+    }).reset_index()
+
+    # Round all numerical values to 3 decimal places
+    summary_table = summary_table.round(3)
+
+    # Save the table as a PNG
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.axis("tight")
+    ax.axis("off")
+    table = ax.table(
+        cellText=summary_table.values,
+        colLabels=summary_table.columns,
+        cellLoc="center",
+        loc="center",
+    )
+
+    # Customize table style: white background with black text
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1.2, 1.2)  # Adjust size of the table
+    for (row, col), cell in table.get_celld().items():
+        cell.set_edgecolor("black")
+        cell.set_facecolor("white")
+        cell.set_text_props(color="black")
+
+    plt.title("Summary Table for Obesity Levels", fontsize=14, pad=10)
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "obesity_summary_table_readable.png")
+    plt.savefig(output_file)
+    plt.close()
+
+    print(f"Summary table saved as PNG in {output_file}")
+
+    # Return the summary table as a DataFrame
+    return summary_table
+
+
+
+
+def plot_mean_bmi_by_obesity_level(data):
+    """
+    Calculates the mean BMI for each Obesity_Level_Readable and plots a sorted bar graph.
+    Includes mean BMI values as annotations on the bars.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset with the 'Obesity_Level_Readable' column.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/bmi_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Calculate mean BMI for each Obesity_Level_Readable and sort by mean BMI
+    mean_bmi = (
+        data.groupby("Obesity_Level_Readable")["BMI"]
+        .mean()
+        .sort_values(ascending=True)
+        .reset_index()
+    )
+
+    # Plot the bar graph
+    plt.figure(figsize=(10, 6))
+    ax = sns.barplot(
+        x="Obesity_Level_Readable", y="BMI", data=mean_bmi, palette="viridis", order=mean_bmi["Obesity_Level_Readable"]
+    )
+
+    # Add annotations on top of the bars
+    for idx, value in enumerate(mean_bmi["BMI"]):
+        ax.text(idx, value + 0.2, f"{value:.2f}", color="black", ha="center", fontsize=10)
+
+    # Set titles and labels
+    plt.title("Mean BMI by Obesity Level (Sorted)", fontsize=14)
+    plt.xlabel("Obesity Level")
+    plt.ylabel("Mean BMI")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "mean_bmi_by_obesity_level_readable_sorted.png")
+    plt.savefig(output_file)
+    plt.close()
+
+    print(f"Mean BMI bar graph saved in {output_file}")
+
+
+
+def map_columns_to_readable_strings(data):
+    """
+    Maps integer-coded columns to readable string labels.
+    Adds new columns with '_Readable' suffix for each mapped column.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+
+    Returns:
+    - data: DataFrame with new '_Readable' columns.
+    """
+    # Define the mapping dictionaries
+    mappings = {
+        "Gender": {0: "Female", 1: "Male"},
+        "fam_hist_over-wt": {0: "no", 1: "yes"},
+        "FAVC": {0: "no", 1: "yes"},
+        "CAEC": {0: "Always", 1: "Frequently", 2: "Sometimes", 3: "no"},
+        "SMOKE": {0: "no", 1: "yes"},
+        "SCC": {0: "no", 1: "yes"},
+        "CALC": {0: "Frequently", 1: "Sometimes", 2: "no"}
+    }
+
+    # Apply mappings to create new readable columns
+    for column, mapping in mappings.items():
+        if column in data.columns:
+            readable_column = f"{column}_Readable"
+            data[readable_column] = data[column].map(mapping)
+
+    print("Readable string columns added to the dataset.")
+    return data
+
+
+def plot_distributions(data):
+    """
+    Plots the distributions of specified columns using readable string labels.
+    Increases figure width for columns with long x-axis labels.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/distribution_plots")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Columns to plot (use readable versions if available)
+    columns = [
+        "Gender_Readable", "Age", "Height", "Weight", "fam_hist_over-wt_Readable",
+        "FAVC_Readable", "FCVC", "NCP", "CAEC_Readable", "SMOKE_Readable",
+        "CH2O", "SCC_Readable", "FAF", "TUE", "CALC_Readable", 
+        "MTRANS_Readable", "Obesity_Level_Readable"
+    ]
+
+    for column in columns:
+        if column not in data.columns:
+            print(f"Skipping column '{column}' as it is not present in the dataset.")
+            continue
+
+        # Adjust figure width for long labels
+        figure_width = 12 if column == "Obesity_Level_Readable" else 8
+        plt.figure(figsize=(figure_width, 6))
+        
+        # Choose appropriate plot type based on column type
+        if data[column].dtype == 'object' or data[column].nunique() < 10:
+            # Bar plot for categorical variables
+            sns.countplot(data=data, x=column, palette="pastel")
+            plt.xticks(rotation=45)
+            plt.title(f'Distribution of {column.replace("_Readable", "")}')
+            plt.ylabel('Count')
+
+        else:
+            # Histogram for numerical variables
+            sns.histplot(data[column], kde=True, bins=30, color="skyblue", edgecolor="black")
+            plt.title(f'Distribution of {column}')
+            plt.ylabel('Density')
+        
+        plt.xlabel(column.replace("_Readable", ""))
+        plt.tight_layout()
+        
+        # Save plot to the output folder
+        plt.savefig(os.path.join(output_folder, f'{column}_distribution.png'))
+        plt.close()
+
+    print(f"Distribution plots saved in {output_folder}")
 
 
 if __name__ == "__main__":

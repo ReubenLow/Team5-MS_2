@@ -53,11 +53,10 @@ def clean_data(data, drop_columns=None, add_target=False, target_column_name="ta
     for column in data.select_dtypes(include=['float64', 'int64']).columns:
         if data[column].isnull().sum() > 0:
             data[column].fillna(data[column].median(), inplace=True)
-            
+
     # Calculate BMI if Height and Weight columns are present
     if 'Height' in data.columns and 'Weight' in data.columns:
-        data['BMI'] = data['Weight'] / ((data['Height']) ** 2)
-        data['BMI'] = data['BMI'].round(2)
+       data['BMI'] = data['Weight'] / ((data['Height']) ** 2)
 
     # Encoding categorical variables with numbers
     categorical_columns = data.select_dtypes(include=['object']).columns
@@ -69,6 +68,7 @@ def clean_data(data, drop_columns=None, add_target=False, target_column_name="ta
         data[target_column_name] = None
         print(f"Added an empty target column: '{target_column_name}'")
 
+    data = calculate_body_fat(data)
     print("Data cleaning complete.")
     return data
 
@@ -235,6 +235,35 @@ def print_encoding_summary(encoding_summary):
         for code, category in mapping.items():
             print(f"  {code} -> {category}")
 
+def calculate_body_fat(data):
+    """
+    Calculates body fat percentage based on BMI, age, and gender.
+    Adds a new column 'Body_Fat' to the dataset.
+
+    Parameters:
+    - data: pandas DataFrame containing columns 'Gender', 'BMI', and 'Age'.
+
+    Returns:
+    - Updated DataFrame with 'Body_Fat' column.
+    """
+    # Ensure BMI and Age exist in the dataset
+    if 'BMI' not in data.columns or 'Age' not in data.columns:
+        raise ValueError("The dataset must contain 'BMI' and 'Age' columns to calculate Body Fat.")
+
+    # Check for missing values in required columns
+    if data[['BMI', 'Age', 'Gender']].isnull().any().any():
+        print("Warning: Missing values detected in 'BMI', 'Age', or 'Gender'. These rows will have NaN for Body Fat.")
+
+    # Calculate Body Fat for Males (Gender == 1)
+    data.loc[data['Gender'] == 1, 'Body_Fat'] = (
+        1.20 * data['BMI'] + 0.23 * data['Age'] - 16.2
+    )
+    # Calculate Body Fat for Females (Gender == 0)
+    data.loc[data['Gender'] == 0, 'Body_Fat'] = (
+        1.20 * data['BMI'] + 0.23 * data['Age'] - 5.4
+    )
+    data['Body_Fat'] = data['Body_Fat'].round(2)
+    return data
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Clean specific data file in the training_data folder.")

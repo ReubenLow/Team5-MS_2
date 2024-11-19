@@ -55,14 +55,9 @@ def clean_data(data, drop_columns=None, add_target=False, target_column_name="ta
             data[column].fillna(data[column].median(), inplace=True)
             
     # Calculate BMI if Height and Weight columns are present
-<<<<<<< HEAD
     if 'Height' in data.columns and 'Weight' in data.columns:
         data['BMI'] = data['Weight'] / ((data['Height']) ** 2)
         data['BMI'] = data['BMI'].round(2)
-=======
-    #if 'Height' in data.columns and 'Weight' in data.columns:
-    #    data['BMI'] = data['Weight'] / ((data['Height'] / 100) ** 2)
->>>>>>> 68eef471644c973b519daf5de34d4c6436fa3022
 
     # Encoding categorical variables with numbers
     categorical_columns = data.select_dtypes(include=['object']).columns

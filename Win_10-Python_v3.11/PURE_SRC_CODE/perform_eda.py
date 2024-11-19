@@ -13,7 +13,7 @@ from scipy.stats import shapiro, kstest, norm, probplot, chi2_contingency
 import argparse
 import configparser
 import subprocess
-import textwrap
+from textwrap import wrap
 
 pd.set_option('display.max_rows', None)  # Display all rows
 
@@ -162,12 +162,776 @@ def main(config_file="config.txt"):
     plot_obesity_age_distribution(data)
     result_column = "Obesity_Level"
     plot_correlation_heatmap(data, result_column)
-    plot_individual_age_height_weight_relationships(data)
     plot_mean_bmi_by_obesity_level(data)
     create_obesity_summary_table(data)
     plot_combined_mtrans_by_obesity_level(data)
+    plot_age_categories_by_obesity_level(data)
+    #---
+    plot_family_history_vs_obesity_level(data)
+    plot_individual_age_height_weight_relationships(data)
+    plot_favc_vs_obesity_level(data)
+    plot_ncp_vs_obesity_level_scatter(data)
+    plot_caec_vs_obesity_level(data)
+    plot_scc_vs_obesity_level(data)
+    plot_faf_vs_obesity_level(data)
+    plot_tue_vs_obesity_level(data)
+    plot_mtrans_vs_obesity_level(data)
+    plot_calc_vs_obesity_level(data)
+    plot_calc_vs_simplified_obesity_level(data)
+    plot_smoke_vs_obesity_level(data)
+    plot_ch2o_vs_obesity_level(data)
+    plot_gender_vs_obesity_level(data)
+    plot_gender_vs_simplified_obesity(data)
     print(f"EDA graphs saved in {output_folder}")
+
+
+
+def plot_gender_vs_simplified_obesity(data):
+    """
+    Visualizes the relationship between Gender and simplified obesity categories
+    (Normal/Underweight and Overweight) using a grouped bar chart.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `Gender` codes with readable strings
+    gender_map = {
+        0: "Female",
+        1: "Male"
+    }
+    data["Gender_Readable"] = data["Gender"].map(gender_map)
+
+    # Create a new simplified obesity category
+    def simplify_obesity_level(level):
+        if level in [0, 1]:  # Insufficient Weight or Normal Weight
+            return "Normal/Underweight"
+        else:  # Overweight or Obese
+            return "Overweight"
+
+    data["Simplified_Obesity_Level"] = data["Obesity_Level"].apply(simplify_obesity_level)
+
+    # Group by Simplified Obesity Level and Gender, then count occurrences
+    simplified_counts = data.groupby(["Simplified_Obesity_Level", "Gender_Readable"]).size().unstack(fill_value=0)
+
+    # Plot the grouped bar chart
+    simplified_counts.plot(kind="bar", figsize=(10, 6), width=0.8, cmap="viridis")
+    plt.title("Gender vs Weight (Overweight and normal/underweight) Categories", fontsize=12)
+    plt.xlabel("Obesity Category", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=0)
+    plt.legend(title="Gender", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "gender_vs_simplified_obesity.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"Gender vs Simplified Obesity Categories chart saved in {output_file}")
+
+
+def plot_gender_vs_obesity_level(data):
+    """
+    Visualizes the relationship between Gender and Obesity Levels
+    using a grouped bar chart.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `Gender` codes with readable strings
+    gender_map = {
+        0: "Female",
+        1: "Male"
+    }
+    data["Gender_Readable"] = data["Gender"].map(gender_map)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Group by Obesity_Level and Gender, then count occurrences
+    gender_counts = data.groupby(["Obesity_Level_Readable", "Gender_Readable"]).size().unstack(fill_value=0)
+
+    # Plot the grouped bar chart
+    gender_counts.plot(kind="bar", figsize=(12, 8), width=0.8, cmap="viridis")
+    plt.title("Gender vs Obesity Levels", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.legend(title="Gender", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "gender_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"Gender vs Obesity Levels grouped bar chart saved in {output_file}")
+
+
+def plot_ch2o_vs_obesity_level(data):
+    """
+    Visualizes the relationship between CH2O (Daily Water Intake)
+    and Obesity Levels using a box plot.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Plot the box plot
+    plt.figure(figsize=(12, 8))
+    sns.boxplot(
+        data=data,
+        x="Obesity_Level_Readable",
+        y="CH2O",
+        palette="viridis"
+    )
+    plt.title("CH2O (Daily Water Intake) vs Obesity Levels", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("CH2O (Daily Water Intake)", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "ch2o_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"CH2O vs Obesity Levels box plot saved in {output_file}")
+
+def plot_smoke_vs_obesity_level(data):
+    """
+    Visualizes the relationship between SMOKE (Smoking Habit)
+    and Obesity Levels using a stacked bar chart.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `SMOKE` codes with readable strings
+    smoke_map = {
+        0: "No",
+        1: "Yes"
+    }
+    data["SMOKE_Readable"] = data["SMOKE"].map(smoke_map)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Group by Obesity_Level and SMOKE, then count occurrences
+    smoke_counts = data.groupby(["Obesity_Level_Readable", "SMOKE_Readable"]).size().unstack(fill_value=0)
+
+    # Plot the stacked bar chart
+    smoke_counts.plot(kind="bar", stacked=True, figsize=(12, 8), cmap="viridis")
+    plt.title("SMOKE (Smoking Habit) vs Obesity Levels", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.legend(title="SMOKE (Smoking Habit)", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "smoke_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"SMOKE vs Obesity Levels chart saved in {output_file}")
+
+
+def plot_calc_vs_simplified_obesity_level(data):
+    """
+    Visualizes the relationship between CALC (Consumption of Alcohol)
+    and simplified obesity levels (Normal/Underweight vs Overweight)
+    using a grouped bar chart.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `CALC` codes with readable strings
+    calc_map = {
+        0: "Frequently",
+        1: "Sometimes",
+        2: "No"
+    }
+    data["CALC_Readable"] = data["CALC"].map(calc_map)
+
+    # Categorize Obesity_Level into two groups: Normal/Underweight vs Overweight
+    obesity_category_map = {
+        0: "Normal/Underweight",  # Insufficient_Weight
+        1: "Normal/Underweight",  # Normal_Weight
+        2: "Overweight",          # Obesity_Type_I
+        3: "Overweight",          # Obesity_Type_II
+        4: "Overweight",          # Obesity_Type_III
+        5: "Overweight",          # Overweight_Level_I
+        6: "Overweight"           # Overweight_Level_II
+    }
+    data["Simplified_Obesity_Level"] = data["Obesity_Level"].map(obesity_category_map)
+
+    # Group by Simplified Obesity Level and CALC, then count occurrences
+    calc_counts = data.groupby(["Simplified_Obesity_Level", "CALC_Readable"]).size().unstack(fill_value=0)
+
+    # Plot the grouped bar chart
+    calc_counts.plot(kind="bar", figsize=(10, 6), width=0.8, cmap="viridis")
+
+    # Customize the plot
+    plt.title("CALC (Consumption of Alcohol) vs Overweight and (underweight/normal weight)", fontsize=16)
+    plt.xlabel("Overweight and (underweight/normal weight)", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=0, ha="center")
+    plt.legend(title="CALC (Alcohol Consumption)", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "calc_vs_simplified_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"CALC vs Simplified Obesity Levels chart saved in {output_file}")
+
+
+
+def plot_calc_vs_obesity_level(data):
+    """
+    Visualizes the relationship between CALC (Consumption of Alcohol)
+    and Obesity Levels using a grouped bar chart.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `CALC` codes with readable strings
+    calc_map = {
+        0: "Frequently",
+        1: "Sometimes",
+        2: "No"
+    }
+    data["CALC_Readable"] = data["CALC"].map(calc_map)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Group by Obesity_Level and CALC, then count occurrences
+    calc_counts = data.groupby(["Obesity_Level_Readable", "CALC_Readable"]).size().unstack(fill_value=0)
+
+    # Plot the grouped bar chart
+    calc_counts.plot(kind="bar", figsize=(12, 8), width=0.8, cmap="viridis")
+
+    # Customize the plot
+    plt.title("CALC (Consumption of Alcohol) vs Obesity Levels", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.legend(title="CALC (Alcohol Consumption)", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "calc_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"CALC vs Obesity Levels chart saved in {output_file}")
+
+
+
+def plot_mtrans_vs_obesity_level(data):
+    """
+    Visualizes the relationship between MTRANS (Mode of Transportation)
+    and Obesity Levels using a stacked bar chart.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `MTRANS` codes with readable strings
+    mtrans_map = {
+        0: "Automobile",
+        1: "Bike",
+        2: "Motorbike",
+        3: "Public_Transportation",
+        4: "Walking"
+    }
+    data["MTRANS_Readable"] = data["MTRANS"].map(mtrans_map)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Group by Obesity_Level and MTRANS, then count occurrences
+    mtrans_counts = data.groupby(["Obesity_Level_Readable", "MTRANS_Readable"]).size().unstack(fill_value=0)
+
+    # Plot the stacked bar chart
+    mtrans_counts.plot(kind="bar", stacked=True, figsize=(12, 8), cmap="viridis")
+    plt.title("MTRANS (Mode of Transportation) vs Obesity Levels", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.legend(title="MTRANS (Mode of Transportation)", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "mtrans_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"MTRANS vs Obesity Levels chart saved in {output_file}")
+
+
+def plot_tue_vs_obesity_level(data):
+    """
+    Visualizes the relationship between TUE (Time of Physical Activity per Day)
+    and Obesity Levels using a scatter plot.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/scatter_plots")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Plot the scatter plot
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(
+        data=data,
+        x="TUE",
+        y="Obesity_Level_Readable",
+        hue="Obesity_Level_Readable",
+        palette="viridis",
+        alpha=0.7,
+        s=100
+    )
+    plt.title("TUE (Time using technological devices per Day) vs Obesity Levels", fontsize=16)
+    plt.xlabel("TUE (Time using technological devices per Day)", fontsize=12)
+    plt.ylabel("Obesity Level", fontsize=12)
+    plt.legend(title="Obesity Level", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "tue_vs_obesity_levels_scatter.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"Scatter plot saved in {output_file}")
+
+
+
+def plot_faf_vs_obesity_level(data):
+    """
+    Visualizes the relationship between FAF (Physical Activity Frequency)
+    and Obesity Levels using a scatter plot.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/scatter_plots")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Plot the scatter plot
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(
+        data=data,
+        x="FAF",
+        y="Obesity_Level_Readable",
+        hue="Obesity_Level_Readable",
+        palette="viridis",
+        alpha=0.7,
+        s=100
+    )
+    plt.title("FAF (Physical Activity Frequency) vs Obesity Levels", fontsize=16)
+    plt.xlabel("FAF (Physical Activity Frequency)", fontsize=12)
+    plt.ylabel("Obesity Level", fontsize=12)
+    plt.legend(title="Obesity Level", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "faf_vs_obesity_levels_scatter.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"Scatter plot saved in {output_file}")
+
+
+def plot_scc_vs_obesity_level(data):
+    """
+    Visualizes the relationship between SCC (Calories Monitoring) and Obesity Levels
+    using a stacked bar chart.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `SCC` codes with readable strings
+    scc_map = {
+        0: "No",
+        1: "Yes"
+    }
+    data["SCC_Readable"] = data["SCC"].map(scc_map)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Group by Obesity_Level and SCC, then count occurrences
+    scc_counts = data.groupby(["Obesity_Level_Readable", "SCC_Readable"]).size().unstack(fill_value=0)
+
+    # Plot the stacked bar chart
+    scc_counts.plot(kind="bar", stacked=True, figsize=(12, 8), cmap="viridis")
+    plt.title("SCC (Calories Monitoring) vs Obesity Levels", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.legend(title="SCC (Calories Monitoring)", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "scc_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"SCC vs Obesity Levels chart saved in {output_file}")
+
+
+def plot_caec_vs_obesity_level(data):
+    """
+    Visualizes the relationship between CAEC (Consumption of food between meals) 
+    and Obesity Levels using a stacked bar chart.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `CAEC` codes with readable strings
+    caec_map = {
+        0: "Always",
+        1: "Frequently",
+        2: "Sometimes",
+        3: "No"
+    }
+    data["CAEC_Readable"] = data["CAEC"].map(caec_map)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Group by Obesity_Level and CAEC, then count occurrences
+    caec_counts = data.groupby(["Obesity_Level_Readable", "CAEC_Readable"]).size().unstack(fill_value=0)
+
+    # Plot the stacked bar chart
+    caec_counts.plot(kind="bar", stacked=True, figsize=(12, 8), cmap="viridis")
+    plt.title("CAEC vs Obesity Levels", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.legend(title="CAEC (Consumption of Food Between Meals)", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "caec_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"CAEC vs Obesity Levels chart saved in {output_file}")
+
+
+
+def plot_ncp_vs_obesity_level_scatter(data):
+    """
+    Visualizes the relationship between Number of Meals (NCP) and obesity levels
+    using a scatter plot.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+
+    # Map the Obesity_Level to readable strings
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Plot the scatter plot
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(
+        data=data,
+        x="NCP",  # Number of Meals
+        y="Obesity_Level_Readable",  # Obesity Level
+        hue="Obesity_Level_Readable",  # Color points by Obesity Level
+        palette="viridis",
+        alpha=0.7,
+        marker="o",
+        s=100  # Marker size
+    )
+
+    plt.title("Number of Meals (NCP) vs Obesity Levels", fontsize=16)
+    plt.xlabel("Number of Meals (NCP)", fontsize=12)
+    plt.ylabel("Obesity Level", fontsize=12)
+    plt.legend(title="Obesity Level", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "ncp_vs_obesity_levels_scatter.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"NCP vs Obesity Levels scatter plot saved in {output_file}")
+
+
     
+def plot_individual_age_height_weight_relationships(data):
+    """
+    Plots scatter plots for:
+    1. Height vs Age
+    2. Height vs Weight
+    3. Age vs Weight
+    Each scatter plot is saved as a separate file.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/individual_relationship_plots")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Scatter plot: Height vs Age
+    plt.figure(figsize=(8, 6))
+    sns.scatterplot(
+        data=data,
+        x="Height",
+        y="Age",
+        hue="Obesity_Level_Readable",  # Use readable strings for legend
+        palette="viridis",
+        alpha=0.7
+    )
+    plt.title("Height vs Age")
+    plt.xlabel("Height")
+    plt.ylabel("Age")
+    plt.legend(title="Obesity Level", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_folder, "height_vs_age.png"))
+    plt.close()
+
+    print("Height vs Age plot saved.")
+
+    # Scatter plot: Height vs Weight
+    plt.figure(figsize=(8, 6))
+    sns.scatterplot(
+        data=data,
+        x="Height",
+        y="Weight",
+        hue="Obesity_Level_Readable",  # Use readable strings for legend
+        palette="viridis",
+        alpha=0.7
+    )
+    plt.title("Height vs Weight")
+    plt.xlabel("Height")
+    plt.ylabel("Weight")
+    plt.legend(title="Obesity Level", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_folder, "height_vs_weight.png"))
+    plt.close()
+
+    print("Height vs Weight plot saved.")
+
+    # Scatter plot: Age vs Weight
+    plt.figure(figsize=(8, 6))
+    sns.scatterplot(
+        data=data,
+        x="Age",
+        y="Weight",
+        hue="Obesity_Level_Readable",  # Use readable strings for legend
+        palette="viridis",
+        alpha=0.7
+    )
+    plt.title("Age vs Weight")
+    plt.xlabel("Age")
+    plt.ylabel("Weight")
+    plt.legend(title="Obesity Level", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_folder, "age_vs_weight.png"))
+    plt.close()
+
+    print("Age vs Weight plot saved.")
+
+    print(f"Scatter plots saved in {output_folder}")
 
 
 def plot_box_plots(data):
@@ -350,82 +1114,25 @@ def plot_correlation_heatmap(data, result_column):
         print(corr_with_target)
 
 
-def plot_individual_age_height_weight_relationships(data):
-    """
-    Plots scatter plots for:
-    1. Height vs Age
-    2. Height vs Weight
-    3. Age vs Weight
-    Each scatter plot is saved as a separate file.
-
-    Parameters:
-    - data: pandas DataFrame containing the dataset.
-    """
-    # Dynamically set the output folder relative to the script location
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_folder = os.path.join(script_dir, "../EDA_DATA/individual_relationship_plots")
-
-    # Ensure the output folder exists
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-
-    # Scatter plot: Height vs Age
-    plt.figure(figsize=(8, 6))
-    sns.scatterplot(data=data, x="Height", y="Age", hue="Obesity_Level", palette="viridis", alpha=0.7)
-    plt.title("Height vs Age")
-    plt.xlabel("Height")
-    plt.ylabel("Age")
-    plt.legend(title="Obesity Level", bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_folder, "height_vs_age.png"))
-    plt.close()
-
-    print("Height vs Age plot saved.")
-
-    # Scatter plot: Height vs Weight
-    plt.figure(figsize=(8, 6))
-    sns.scatterplot(data=data, x="Height", y="Weight", hue="Obesity_Level", palette="viridis", alpha=0.7)
-    plt.title("Height vs Weight")
-    plt.xlabel("Height")
-    plt.ylabel("Weight")
-    plt.legend(title="Obesity Level", bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_folder, "height_vs_weight.png"))
-    plt.close()
-
-    print("Height vs Weight plot saved.")
-
-    # Scatter plot: Age vs Weight
-    plt.figure(figsize=(8, 6))
-    sns.scatterplot(data=data, x="Age", y="Weight", hue="Obesity_Level", palette="viridis", alpha=0.7)
-    plt.title("Age vs Weight")
-    plt.xlabel("Age")
-    plt.ylabel("Weight")
-    plt.legend(title="Obesity Level", bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_folder, "age_vs_weight.png"))
-    plt.close()
-
-    print("Age vs Weight plot saved.")
-
-    print(f"Scatter plots saved in {output_folder}")
 
 def create_obesity_summary_table(data):
     """
-    Creates a summary table for each Obesity_Level_Readable, calculating:
+    Creates a summary table for each Obesity_Level with readable strings as row values, calculating:
     - Count
-    - Mean BMI
+    - Mean Weight
     - Standard Deviation (std, calculated manually)
-    - Minimum BMI
+    - Minimum Weight
     - 25th Percentile
     - 50th Percentile (Median)
     - 75th Percentile
-    - Maximum BMI
+    - Maximum Weight
     Saves the table as a PNG file with white background and black text.
 
     Parameters:
     - data: pandas DataFrame containing the dataset.
     """
+
+
     # Dynamically set the output folder relative to the script location
     script_dir = os.path.dirname(os.path.abspath(__file__))
     output_folder = os.path.join(script_dir, "../EDA_DATA/obesity_summary_table")
@@ -434,8 +1141,8 @@ def create_obesity_summary_table(data):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    # Calculate the required summary statistics grouped by Obesity_Level_Readable
-    grouped = data.groupby("Obesity_Level_Readable")["BMI"]
+    # Calculate the required summary statistics grouped by Obesity_Level
+    grouped = data.groupby("Obesity_Level")["Weight"]
     summary_table = pd.DataFrame({
         "count": grouped.size(),
         "mean": grouped.mean(),
@@ -447,41 +1154,119 @@ def create_obesity_summary_table(data):
         "max": grouped.max()
     }).reset_index()
 
+    # Replace `Obesity_Level` with readable strings in the summary table
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    summary_table["Obesity_Level"] = summary_table["Obesity_Level"].map(obesity_level_map)
+
     # Round all numerical values to 3 decimal places
     summary_table = summary_table.round(3)
 
+    # Wrap column headers for better readability
+    col_labels = [
+        "\n".join(wrap(col, width=10)) for col in summary_table.columns
+    ]
+
     # Save the table as a PNG
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(15, 8))  # Keep image size
     ax.axis("tight")
     ax.axis("off")
     table = ax.table(
         cellText=summary_table.values,
-        colLabels=summary_table.columns,
+        colLabels=col_labels,
         cellLoc="center",
         loc="center",
     )
 
+    # Customize column widths and cell heights
+    for (row, col), cell in table.get_celld().items():
+        if col == 0:  # Keep Obesity_Level column wide
+            cell.set_width(0.2)  # Set wider width for this column
+            cell.set_height(0.11)  # Adjust height
+        else:  # Reduce the width of other columns
+            cell.set_width(0.07)
+            cell.set_height(0.11)
+
     # Customize table style: white background with black text
     table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1.2, 1.2)  # Adjust size of the table
+    table.set_fontsize(12)  # Adjust font size
     for (row, col), cell in table.get_celld().items():
         cell.set_edgecolor("black")
         cell.set_facecolor("white")
         cell.set_text_props(color="black")
 
-    plt.title("Summary Table for Obesity Levels", fontsize=14, pad=10)
+    plt.title("Summary Table for Obesity Levels (Based on Weight)", fontsize=16, pad=20)  # Adjust title size and padding
     plt.tight_layout()
 
-    # Save the plot
-    output_file = os.path.join(output_folder, "obesity_summary_table_readable.png")
-    plt.savefig(output_file)
+    # Save the plot with adjusted bounding box for better layout
+    output_file = os.path.join(output_folder, "obesity_summary_table_weight.png")
+    plt.savefig(output_file, bbox_inches="tight", dpi=300)  # High resolution and adjusted layout
     plt.close()
 
     print(f"Summary table saved as PNG in {output_file}")
 
     # Return the summary table as a DataFrame
     return summary_table
+
+
+
+def plot_favc_vs_obesity_level(data):
+    """
+    Visualizes the correlation between FAVC and obesity levels using a stacked bar chart.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Prepare the data: Group by Obesity_Level and FAVC
+    favc_counts = data.groupby(["Obesity_Level", "FAVC"]).size().unstack(fill_value=0)
+
+    # Replace `FAVC` codes with readable strings
+    favc_counts.rename(columns={0: "No", 1: "Yes"}, inplace=True)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    favc_counts.index = favc_counts.index.map(obesity_level_map)
+
+    # Plot the stacked bar chart
+    favc_counts.plot(kind="bar", stacked=True, figsize=(12, 8), color=["skyblue", "orange"])
+    plt.title("FAVC vs Obesity Levels", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.legend(title="FAVC (High-Calorie Food Consumption)", loc="upper right")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "favc_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"FAVC vs Obesity Levels chart saved in {output_file}")
+
+
 
 
 
@@ -623,6 +1408,103 @@ def plot_distributions(data):
         plt.close()
 
     print(f"Distribution plots saved in {output_folder}")
+
+
+def plot_age_categories_by_obesity_level(data):
+    """
+    Categorizes the 'Age' column into predefined categories and plots the distribution
+    of these categories as bar graphs for each Obesity_Level_Readable.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset with 'Age' and 'Obesity_Level_Readable' columns.
+    """
+
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/age_categories_by_obesity")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Categorize 'Age' into predefined categories
+    age_bins = [0, 12, 18, 35, 60, 100]  # Boundaries for age groups
+    age_labels = ["Children", "Teenage", "Young Adults", "Adults", "Elderly"]
+    data["Age_Category"] = pd.cut(data["Age"], bins=age_bins, labels=age_labels, right=False)
+
+    # Count occurrences of age categories for each Obesity_Level_Readable
+    age_category_counts = data.groupby(["Obesity_Level_Readable", "Age_Category"]).size().unstack(fill_value=0)
+
+    # Plot the grouped bar chart
+    plt.figure(figsize=(12, 8))
+    age_category_counts.plot(kind="bar", figsize=(12, 8), width=0.8, cmap="viridis")
+
+    # Customize the plot
+    plt.title("Distribution of Age Categories by Obesity Level", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=45)
+    plt.legend(title="Age Categories", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "age_categories_by_obesity_level.png")
+    plt.savefig(output_file)
+    plt.close()
+
+    print(f"Bar graph saved in {output_file}")
+
+
+def plot_family_history_vs_obesity_level(data):
+    """
+    Visualizes the correlation between family history of being overweight 
+    and obesity levels using a stacked bar chart.
+
+    Parameters:
+    - data: pandas DataFrame containing the dataset.
+    """
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/correlation_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Prepare the data: Group by Obesity_Level and fam_hist_over-wt
+    family_history_counts = data.groupby(["Obesity_Level", "fam_hist_over-wt"]).size().unstack(fill_value=0)
+
+    # Replace `fam_hist_over-wt` codes with readable strings
+    family_history_counts.rename(columns={0: "No", 1: "Yes"}, inplace=True)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    family_history_counts.index = family_history_counts.index.map(obesity_level_map)
+
+    # Plot the stacked bar chart
+    family_history_counts.plot(kind="bar", stacked=True, figsize=(12, 8), color=["skyblue", "orange"])
+    plt.title("Family History vs Obesity Levels", fontsize=16)
+    plt.xlabel("Obesity Level", fontsize=12)
+    plt.ylabel("Number of People", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.legend(title="Family History", loc="upper right")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "family_history_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"Family history vs obesity levels chart saved in {output_file}")
+
 
 
 if __name__ == "__main__":

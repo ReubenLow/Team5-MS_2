@@ -40,12 +40,48 @@ def select_testing_file(input_folder):
     choice = int(input("Select the file number to test the model on: ")) - 1
     return os.path.join(input_folder, files[choice])
 
+# def load_data(file_path):
+#     data = pd.read_csv(file_path)
+#     target_col = "Obesity_Level"
+#     X_test = data.drop(columns=[target_col])  
+#     y_test = data[target_col]  
+#     return X_test, y_test
+
 def load_data(file_path):
     data = pd.read_csv(file_path)
     target_col = "Obesity_Level"
-    X_test = data.drop(columns=[target_col])  
-    y_test = data[target_col]  
+    
+    if target_col in data.columns:
+        # Target column is present
+        X_test = data.drop(columns=[target_col])
+        y_test = data[target_col]
+        print(f"Target column '{target_col}' found. Data loaded with features and target.")
+    else:
+        # Target column is absent
+        X_test = data  # Use all columns as features
+        y_test = None  # No target available
+        print(f"Target column '{target_col}' not found. Data loaded with features only.")
+    
     return X_test, y_test
+
+
+def load_data(file_path):
+    data = pd.read_csv(file_path)
+    target_col = "Obesity_Level"
+    
+    if target_col in data.columns:
+        # Target column is present
+        X_test = data.drop(columns=[target_col])
+        y_test = data[target_col]
+        print(f"Target column '{target_col}' found. Data loaded with features and target.")
+    else:
+        # Target column is absent
+        X_test = data  # Use all columns as features
+        y_test = None  # No target available
+        print(f"Target column '{target_col}' not found. Data loaded with features only.")
+    
+    return X_test, y_test
+
 
 def load_models(model_folder):
     models = {}
@@ -96,8 +132,15 @@ def output_predictions_with_formatting(X_test, y_test, y_pred, output_path):
             X_test[col] = X_test[col].map(mapping)
 
     # Add actual and predicted columns to the dataset
-    X_test["Actual_Obesity_Level"] = y_test.map(combined_mappings["Obesity_Level"])
+    # X_test["Actual_Obesity_Level"] = y_test.map(combined_mappings["Obesity_Level"])
+    # X_test["Predicted_Obesity_Level"] = pd.Series(y_pred).map(combined_mappings["Obesity_Level"])
+
+    # Add the predicted column
     X_test["Predicted_Obesity_Level"] = pd.Series(y_pred).map(combined_mappings["Obesity_Level"])
+
+    # Add the actual column only if y_test is not None
+    if y_test is not None:
+        X_test["Actual_Obesity_Level"] = y_test.map(combined_mappings["Obesity_Level"])
 
     # Create a workbook and worksheet
     wb = Workbook()
@@ -116,11 +159,12 @@ def output_predictions_with_formatting(X_test, y_test, y_pred, output_path):
     for i, row in X_test.iterrows():
         ws.append(row.tolist())
         # Apply formatting to the last column (Predicted_Obesity_Level)
-        predicted_cell = ws.cell(row=i + 2, column=len(headers))  # Adjust for header row
-        if row["Actual_Obesity_Level"] == row["Predicted_Obesity_Level"]:
-            predicted_cell.fill = correct_fill
-        else:
-            predicted_cell.fill = incorrect_fill
+        if y_test is not None:
+            predicted_cell = ws.cell(row=i + 2, column=len(headers))  # Adjust for header row
+            if row["Actual_Obesity_Level"] == row["Predicted_Obesity_Level"]:
+                predicted_cell.fill = correct_fill
+            else:
+                predicted_cell.fill = incorrect_fill
 
     # Save the Excel file
     wb.save(output_path)
@@ -141,6 +185,22 @@ def evaluate_model(model, X_test, y_test, output_dir, feature_names):
         y_pred,
         os.path.join(output_dir, "predictions_with_formatting.xlsx")
     )
+
+    # Handle cases where the target column (y_test) is not available
+    if y_test is None:
+        print("Target column is not present in the dataset. Skipping evaluation metrics calculation.")
+        return {
+            'accuracy': None,
+            'precision': None,
+            'recall': None,
+            'f1_score': None,
+            'roc_auc': None,
+            'mse': None,
+            'mae': None,
+            'rmse': None,
+            'confusion_matrix': None,
+            'classification_report': "Target column is missing; no report generated."
+        }
 
     # Validate test dataset classes
     unique_classes = np.unique(y_test)
@@ -319,25 +379,62 @@ def main(config_file="config.txt"):
         # print(f"Model: {model_name} - Metrics: {metrics}")
 
         # Format and print the metrics
+        # print(f"\n{'='*40}")
+        # print(f"Model: {model_name}")
+        # print(f"{'-'*40}")
+        # print("Classification Report:")
+        # print(metrics['classification_report'])
+        # print(f"Accuracy       : {metrics['accuracy']:.4f}")
+        # if metrics['roc_auc'] is not None:
+        #     print(f"ROC AUC        : {metrics['roc_auc']:.4f}")
+        # else:
+        #     print("ROC AUC        : Not applicable (e.g., no probabilities available).")
+        # print(f"MSE            : {metrics['mse']:.4f}")
+        # print(f"MAE            : {metrics['mae']:.4f}")
+        # print(f"RMSE           : {metrics['rmse']:.4f}")
+        # print("Confusion Matrix:")
+        # print(metrics['confusion_matrix'])
+        # print(f"{'='*40}\n")
         print(f"\n{'='*40}")
         print(f"Model: {model_name}")
         print(f"{'-'*40}")
-        print("Classification Report:")
-        print(metrics['classification_report'])
-        print(f"Accuracy       : {metrics['accuracy']:.4f}")
-        # if isinstance(metrics['roc_auc'], str):
-        #     print(f"ROC AUC        : {metrics['roc_auc']}")
-        # else:
-        #     print(f"ROC AUC        : {metrics['roc_auc']:.4f}")
+        if metrics['classification_report'] != "Target column is missing; no report generated.":
+            print("Classification Report:")
+            print(metrics['classification_report'])
+        else:
+            print("Classification Report: Not available (Target column missing).")
+
+        if metrics['accuracy'] is not None:
+            print(f"Accuracy       : {metrics['accuracy']:.4f}")
+        else:
+            print("Accuracy       : Not available (Target column missing).")
+
         if metrics['roc_auc'] is not None:
             print(f"ROC AUC        : {metrics['roc_auc']:.4f}")
         else:
-            print("ROC AUC        : Not applicable (e.g., no probabilities available).")
-        print(f"MSE            : {metrics['mse']:.4f}")
-        print(f"MAE            : {metrics['mae']:.4f}")
-        print(f"RMSE           : {metrics['rmse']:.4f}")
-        print("Confusion Matrix:")
-        print(metrics['confusion_matrix'])
+            print("ROC AUC        : Not available (e.g., no probabilities available or target missing).")
+
+        if metrics['mse'] is not None:
+            print(f"MSE            : {metrics['mse']:.4f}")
+        else:
+            print("MSE            : Not available (Target column missing).")
+
+        if metrics['mae'] is not None:
+            print(f"MAE            : {metrics['mae']:.4f}")
+        else:
+            print("MAE            : Not available (Target column missing).")
+
+        if metrics['rmse'] is not None:
+            print(f"RMSE           : {metrics['rmse']:.4f}")
+        else:
+            print("RMSE           : Not available (Target column missing).")
+
+        if metrics['confusion_matrix'] is not None:
+            print("Confusion Matrix:")
+            print(metrics['confusion_matrix'])
+        else:
+            print("Confusion Matrix: Not available (Target column missing).")
+
         print(f"{'='*40}\n")
 
     report_path = os.path.join(visialize_output_folder, 'prediction_report.csv')

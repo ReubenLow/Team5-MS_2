@@ -59,21 +59,6 @@ def calculate_bmi(data):
     print("BMI column successfully added.")
     return data
 
-def calculate_body_fat(data):
-    """
-    Calculates and adds a new column 'Body_Fat' to the DataFrame.
-
-    Parameters:
-    - data: pandas DataFrame containing the dataset.
-
-    Returns:
-    - data: DataFrame with the new 'Body_Fat' column.
-    """
-    data['Body_Fat'] = None
-    data.loc[data['Gender'] == 1, 'Body_Fat'] = 1.20 * data['BMI'] + 0.23 * data['Age'] - 16.2  # Males
-    data.loc[data['Gender'] == 0, 'Body_Fat'] = 1.20 * data['BMI'] + 0.23 * data['Age'] - 5.4   # Females
-    return data
-
 def add_readable_columns(data):
     """
     Adds two new columns to the DataFrame with readable string labels for MTRANS and Obesity_Level.
@@ -171,8 +156,6 @@ def main(config_file="config.txt"):
     # Add the BMI column
     data = calculate_bmi(data)
     data = add_readable_columns(data)
-    # Add body fat column
-    data = calculate_body_fat(data)
     # Call the functions for EDA
     plot_distributions(data)
     plot_box_plots(data)
@@ -199,8 +182,115 @@ def main(config_file="config.txt"):
     plot_ch2o_vs_obesity_level(data)
     plot_gender_vs_obesity_level(data)
     plot_gender_vs_simplified_obesity(data)
+    plot_mean_body_fat_vs_obesity_levels(data)
+    plot_sorted_boxplot_body_fat_vs_obesity_levels(data)
     print(f"EDA graphs saved in {output_folder}")
 
+def plot_sorted_boxplot_body_fat_vs_obesity_levels(data):
+
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/body_fat_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Calculate median body fat for sorting
+    median_body_fat = (
+        data.groupby("Obesity_Level_Readable")["Body_Fat"]
+        .median()
+        .sort_values(ascending=True)
+    )
+
+    # Reorder categories based on median body fat
+    sorted_categories = median_body_fat.index
+    data["Obesity_Level_Readable"] = pd.Categorical(
+        data["Obesity_Level_Readable"], categories=sorted_categories, ordered=True
+    )
+
+    # Create the sorted box plot
+    plt.figure(figsize=(12, 8))
+    sns.boxplot(
+        data=data, x="Obesity_Level_Readable", y="Body_Fat", palette="viridis"
+    )
+    plt.title("Sorted Box Plot: Body Fat Percentage by Obesity Levels", fontsize=16)
+    plt.xlabel("Obesity Levels", fontsize=12)
+    plt.ylabel("Body Fat Percentage", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "sorted_boxplot_body_fat_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"Sorted Box Plot for Body Fat vs Obesity Levels saved in {output_file}")
+
+
+def plot_mean_body_fat_vs_obesity_levels(data):
+    # Dynamically set the output folder relative to the script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_folder = os.path.join(script_dir, "../EDA_DATA/body_fat_analysis")
+
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Replace `Obesity_Level` codes with readable strings
+    obesity_level_map = {
+        0: "Insufficient_Weight",
+        1: "Normal_Weight",
+        2: "Obesity_Type_I",
+        3: "Obesity_Type_II",
+        4: "Obesity_Type_III",
+        5: "Overweight_Level_I",
+        6: "Overweight_Level_II"
+    }
+    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_map)
+
+    # Calculate the mean body fat for each obesity level and sort in ascending order
+    mean_body_fat = (
+        data.groupby("Obesity_Level_Readable")["Body_Fat"]
+        .mean()
+        .sort_values(ascending=True)
+        .reset_index()
+    )
+
+    # Create the bar graph
+    plt.figure(figsize=(12, 8))
+    sns.barplot(
+        data=mean_body_fat, x="Obesity_Level_Readable", y="Body_Fat", palette="viridis"
+    )
+    plt.title("Mean Body Fat Percentage vs Obesity Levels (Sorted)", fontsize=16)
+    plt.xlabel("Obesity Levels", fontsize=12)
+    plt.ylabel("Mean Body Fat Percentage", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+
+    # Add values on top of bars
+    for idx, value in enumerate(mean_body_fat["Body_Fat"]):
+        plt.text(idx, value + 0.5, f"{value:.2f}", ha="center", fontsize=10, color="black")
+
+    plt.tight_layout()
+
+    # Save the plot
+    output_file = os.path.join(output_folder, "mean_body_fat_vs_obesity_levels.png")
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
+    print(f"Mean Body Fat vs Obesity Levels chart saved in {output_file}")
 
 
 def plot_gender_vs_simplified_obesity(data):
@@ -1521,8 +1611,6 @@ def plot_family_history_vs_obesity_level(data):
     plt.close()
 
     print(f"Family history vs obesity levels chart saved in {output_file}")
-
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Perform EDA on cleaned data.")

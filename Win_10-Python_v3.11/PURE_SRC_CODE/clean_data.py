@@ -57,6 +57,7 @@ def clean_data(data, drop_columns=None, add_target=False, target_column_name="ta
     # Calculate BMI if Height and Weight columns are present
     if 'Height' in data.columns and 'Weight' in data.columns:
        data['BMI'] = data['Weight'] / ((data['Height']) ** 2)
+       data['BMI'] = data['BMI'].round(2)
 
     # Encoding categorical variables with numbers
     categorical_columns = data.select_dtypes(include=['object']).columns
@@ -168,28 +169,17 @@ def main(config_file="config.txt", selected_file=None):
 
             # Split the remaining data into validation and test sets
             validation_data, test_data = train_test_split(temp_data, test_size=(test_percentage / (validation_percentage + test_percentage)), random_state=42)
-                
-        # Split the data into training and testing sets
-        # train_data, test_data = train_test_split(cleaned_data, test_size=test_size, random_state=random_state)
-        # Perform the first split to separate training data
-        # train_data, temp_data = train_test_split(cleaned_data, test_size=(validation_percentage + test_percentage), random_state=42) # v1
-
-        # Split the remaining data into validation and test sets
-        # validation_data, test_data = train_test_split(temp_data, test_size=(test_percentage / (validation_percentage + test_percentage)), random_state=42) # v1
 
         # Generate filenames for the split datasets
         train_output_path = os.path.join(output_folder, f"train_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
         test_output_path = os.path.join(output_folder, f"test_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
-        # validation_output_path = os.path.join(output_folder, f"validation_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
 
         # Save the split datasets
         train_data.to_csv(train_output_path, index=False)
         test_data.to_csv(test_output_path, index=False)
-        # validation_data.to_csv(validation_output_path, index=False)
 
         print(f"Saved training data to {train_output_path}")
         print(f"Saved testing data to {test_output_path}")
-        # print(f"Saved validation data to {validation_output_path}")
 
         if validation_data is not None:
             validation_output_path = os.path.join(output_folder, f"validation_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")

@@ -64,9 +64,42 @@ def preprocess_test_data(X_test, training_features):
     return X_test
 
 def output_predictions_with_formatting(X_test, y_test, y_pred, output_path):
+    combined_mappings = {
+        "MTRANS": {
+            0: "Automobile",
+            1: "Bike",
+            2: "Motorbike",
+            3: "Public_Transportation",
+            4: "Walking"
+        },
+        "Obesity_Level": {
+            0: "Insufficient_Weight",
+            1: "Normal_Weight",
+            2: "Obesity_Type_I",
+            3: "Obesity_Type_II",
+            4: "Obesity_Type_III",
+            5: "Overweight_Level_I",
+            6: "Overweight_Level_II"
+        },
+        "Gender": {0: "Female", 1: "Male"},
+        "fam_hist_over-wt": {0: "no", 1: "yes"},
+        "FAVC": {0: "no", 1: "yes"},
+        "CAEC": {0: "Always", 1: "Frequently", 2: "Sometimes", 3: "no"},
+        "SMOKE": {0: "no", 1: "yes"},
+        "SCC": {0: "no", 1: "yes"},
+        "CALC": {0: "Frequently", 1: "Sometimes", 2: "no"}
+    }
+
+    # Decode columns in X_test using the combined mappings
+    for col, mapping in combined_mappings.items():
+        if col in X_test.columns:
+            X_test[col] = X_test[col].map(mapping)
+
     # Add actual and predicted columns to the dataset
-    X_test["Actual_Obesity_Level"] = y_test
-    X_test["Predicted_Obesity_Level"] = y_pred
+    # X_test["Actual_Obesity_Level"] = y_test
+    # X_test["Predicted_Obesity_Level"] = y_pred
+    X_test["Actual_Obesity_Level"] = y_test.map(combined_mappings["Obesity_Level"])
+    X_test["Predicted_Obesity_Level"] = pd.Series(y_pred).map(combined_mappings["Obesity_Level"])
 
     # Create a workbook and worksheet
     wb = Workbook()

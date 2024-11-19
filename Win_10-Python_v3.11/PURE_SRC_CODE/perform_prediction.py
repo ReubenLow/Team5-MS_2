@@ -96,8 +96,6 @@ def output_predictions_with_formatting(X_test, y_test, y_pred, output_path):
             X_test[col] = X_test[col].map(mapping)
 
     # Add actual and predicted columns to the dataset
-    # X_test["Actual_Obesity_Level"] = y_test
-    # X_test["Predicted_Obesity_Level"] = y_pred
     X_test["Actual_Obesity_Level"] = y_test.map(combined_mappings["Obesity_Level"])
     X_test["Predicted_Obesity_Level"] = pd.Series(y_pred).map(combined_mappings["Obesity_Level"])
 
@@ -132,6 +130,9 @@ def output_predictions_with_formatting(X_test, y_test, y_pred, output_path):
 def evaluate_model(model, X_test, y_test, output_dir, feature_names):
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test) if hasattr(model, "predict_proba") else None
+
+    # Call the feature importance plotting function
+    plot_feature_importances(model, output_dir)
 
     # Generate Excel output with conditional formatting
     output_predictions_with_formatting(
@@ -191,21 +192,6 @@ def evaluate_model(model, X_test, y_test, output_dir, feature_names):
     plt.savefig(os.path.join(output_dir, "confusion_matrix.png"))
     plt.close()
 
-    # Metrics dictionary
-    # metrics = {
-    #     'accuracy': accuracy_score(y_test, y_pred),
-    #     'precision': precision_score(y_test, y_pred, average="macro", zero_division=0),
-    #     'recall': recall_score(y_test, y_pred, average="macro", zero_division=0),
-    #     'f1_score': f1_score(y_test, y_pred, average="macro", zero_division=0),
-    #     'roc_auc': None if y_prob is None else (
-    #         roc_auc_score(y_test, y_prob, average="macro", multi_class="ovr") if is_multiclass else roc_auc_score(y_test, y_prob[:, 1])
-    #     ),
-    #     'mse': mse,
-    #     'mae': mae,
-    #     'rmse': rmse,
-    #     'confusion_matrix': cm.tolist(),
-    #     'classification_report': classification_report(y_test, y_pred, zero_division=0)
-    # }
     metrics = {
         'accuracy': accuracy_score(y_test, y_pred),
         'precision': precision_score(y_test, y_pred, average="macro", zero_division=0),
@@ -223,135 +209,54 @@ def evaluate_model(model, X_test, y_test, output_dir, feature_names):
 
     return metrics
 
-# def evaluate_model(model, X_test, y_test, output_dir, feature_names):
-    y_pred = model.predict(X_test)
-    y_prob = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
-
-    # Calculate MSE, MAE, and RMSE
-    mse = mean_squared_error(y_test, y_pred)
-    mae = mean_absolute_error(y_test, y_pred)
-    rmse = np.sqrt(mse)
-
-    # Create directory for the model if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-
-    # Confusion Matrix
-    cm = confusion_matrix(y_test, y_pred)
-    ConfusionMatrixDisplay(cm).plot()
-    plt.title("Confusion Matrix")
-    plt.savefig(os.path.join(output_dir, "confusion_matrix.png"))
-    plt.close()
-
-    # ROC Curve and AUC
-    if y_prob is not None:
-        RocCurveDisplay.from_predictions(y_test, y_prob)
-        plt.title("ROC Curve")
-        plt.savefig(os.path.join(output_dir, "roc_curve.png"))
-        plt.close()
-
-    # Precision-Recall Curve
-    if y_prob is not None:
-        PrecisionRecallDisplay.from_predictions(y_test, y_prob)
-        plt.title("Precision-Recall Curve")
-        plt.savefig(os.path.join(output_dir, "precision_recall_curve.png"))
-        plt.close()
-
-    # Calibration Curve
-    if y_prob is not None:
-        prob_true, prob_pred = calibration_curve(y_test, y_prob, n_bins=10)
-        plt.plot(prob_pred, prob_true, marker='o')
-        plt.plot([0, 1], [0, 1], linestyle="--", color='gray')
-        plt.title("Calibration Curve")
-        plt.xlabel("Mean Predicted Probability")
-        plt.ylabel("Fraction of Positives")
-        plt.savefig(os.path.join(output_dir, "calibration_curve.png"))
-        plt.close()
-
-    # Identify missing features, EDIT
-    missing_features = [feature for feature in feature_names if feature not in X_test.columns]
-    if missing_features:
-        # print("\nThe following features were missing in the test dataset:")
-        for feature in missing_features:
-            print(f"- {feature}")
-        # print("They have been filled with zeros in the test data.")
-    # Access the final estimator
-    final_estimator = model.named_steps['model']
-    # Feature Importance or Coefficients (for applicable models)
-    if hasattr(final_estimator, 'feature_importances_'):
-        importances = final_estimator.feature_importances_
-        indices = np.argsort(importances)[::-1]
-        print("Feature importances:")
-        for i in indices:
-            feature_name = feature_names[i]
-            importance = importances[i]
-            # status = " (missing in test data)" if feature_name in missing_features else ""
-            status = "" if feature_name in missing_features else ""
-            print(f"{feature_name}: {importance}{status}")
-
-        # Plot feature importances
-        plt.figure()
-        plt.title("Feature Importances")
-        plt.bar(range(len(importances)), importances[indices], align="center")
-        plt.xticks(range(len(importances)), [feature_names[i] for i in indices], rotation=90)
-        plt.tight_layout()  # Adjust layout to prevent label cutoff
-        feature_importance_path = os.path.join(output_dir, "feature_importance.png")
-        plt.savefig(feature_importance_path)
-        plt.close()
-        print(f"Feature importance plot saved for {model} at {feature_importance_path}")
-    elif hasattr(final_estimator, 'coef_'):
-        importances = np.abs(final_estimator.coef_).flatten()
-        indices = np.argsort(importances)[::-1]
-        print("Feature coefficients (importance):")
-        for i in indices:
-            feature_name = feature_names[i]
-            importance = importances[i]
-            # status = " (missing in test data)" if feature_name in missing_features else ""
-            status = "" if feature_name in missing_features else ""
-            print(f"{feature_name}: {importance}{status}")
-
-        # Plot feature coefficients
-        plt.figure()
-        plt.title("Feature Coefficients (Importance)")
-        plt.bar(range(len(importances)), importances[indices], align="center")
-        plt.xticks(range(len(importances)), [feature_names[i] for i in indices], rotation=90)
-        plt.tight_layout()
-        feature_coefficients_path = os.path.join(output_dir, "feature_coefficients.png")
-        plt.savefig(feature_coefficients_path)
-        plt.close()
-        print(f"Feature coefficients plot saved for {model} at {feature_coefficients_path}")
+def plot_feature_importances(model, output_dir):
+    # Access the underlying estimator if model is a pipeline
+    if hasattr(model, 'named_steps'):
+        preprocessor = model.named_steps['preprocessor']
+        estimator = model.named_steps['model']
+        feature_names = model.feature_names
     else:
-        print(f"No feature importance or coefficients available for model {model}.")
+        estimator = model
+        feature_names = None
 
-    # Heatmap of Predictions vs True Values
-    sns.heatmap(pd.DataFrame({"True": y_test, "Predicted": y_pred}).pivot_table(index='True', columns='Predicted', aggfunc=len, fill_value=0), annot=True, fmt="d", cmap="YlGnBu")
-    plt.title("Heatmap of Predictions vs True Values")
-    plt.savefig(os.path.join(output_dir, "heatmap_prediction_vs_true.png"))
+    # Check for feature_importances_
+    if hasattr(estimator, "feature_importances_"):
+        importances = estimator.feature_importances_
+        print("Using feature_importances_ attribute.")
+    else:
+        print("Feature importances are not available for this model.")
+        return
+
+    # Use the stored feature names if available
+    if feature_names is not None:
+        feature_importances = pd.DataFrame({
+            "Feature": feature_names,
+            "Importance": importances
+        }).sort_values(by="Importance", ascending=False)
+    else:
+        feature_importances = pd.DataFrame({
+            "Feature": [f"Feature {i}" for i in range(len(importances))],
+            "Importance": importances
+        }).sort_values(by="Importance", ascending=False)
+
+    # Print feature importances
+    print("Feature Importances:")
+    print(feature_importances)
+
+    # Plot feature importances
+    plt.figure(figsize=(10, 6))
+    plt.barh(feature_importances["Feature"], feature_importances["Importance"], color="skyblue")
+    plt.xlabel("Importance")
+    plt.ylabel("Feature")
+    plt.title("Feature Importances")
+    plt.gca().invert_yaxis()  # Reverse the order for readability
+    plt.tight_layout()
+
+    # Save the plot
+    output_path = os.path.join(output_dir, "feature_importances.png")
+    plt.savefig(output_path)
+    print(f"Feature importances plot saved to {output_path}")
     plt.close()
-
-    # Scatterplot with Predicted Probabilities
-    if y_prob is not None:
-        plt.scatter(range(len(y_test)), y_prob, c=y_test, cmap="bwr", alpha=0.6)
-        plt.title("Scatterplot of Predicted Probabilities")
-        plt.xlabel("Sample Index")
-        plt.ylabel("Predicted Probability")
-        plt.colorbar(label="True Value")
-        plt.savefig(os.path.join(output_dir, "scatterplot_predicted_probabilities.png"))
-        plt.close()
-
-    # Metrics
-    metrics = {
-        'accuracy': accuracy_score(y_test, y_pred),
-        'precision': precision_score(y_test, y_pred, zero_division=0),
-        'recall': recall_score(y_test, y_pred, zero_division=0),
-        'f1_score': f1_score(y_test, y_pred, zero_division=0),
-        'roc_auc': roc_auc_score(y_test, y_prob) if y_prob is not None else 'N/A',
-        'mse': mse,
-        'mae': mae,
-        'rmse': rmse,
-        'confusion_matrix': cm.tolist(),
-        'classification_report': classification_report(y_test, y_pred, zero_division=0)
-    }
-    return metrics
 
 # Function to list and select models from the model folder
 def select_models(model_folder):

@@ -1,25 +1,18 @@
 import os
 import pandas as pd
 import numpy as np
-# import matplotlib.pyplot as plt
-# import seaborn as sns
 import argparse
 from scipy.stats import shapiro, kstest, norm, probplot, chi2_contingency
-# from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-# from sklearn import neural_network
 from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
-# from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
-# from sklearn.linear_model import LogisticRegression, Ridge, Perceptron, SGDClassifier
 from sklearn.linear_model import LogisticRegression
-# from sklearn.model_selection import cross_val_score, StratifiedShuffleSplit
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import accuracy_score, log_loss, mean_squared_error,confusion_matrix, precision_score, recall_score, auc,roc_curve, roc_auc_score
 from xgboost import XGBClassifier
@@ -44,19 +37,6 @@ def open_config_file(config_file):
         print(f"Failed to open the configuration file: {e}")
         return False
 
-# def load_model_params(config_file, model_name):
-#     config = configparser.ConfigParser()
-#     config.read(config_file)
-
-#     def safe_eval(value):
-#         # Attempt to evaluate the value, return as a string if it fails
-#         try:
-#             return eval(value)
-#         except NameError:
-#             return value
-
-#     # Return the parsed and safely evaluated parameters
-#     return {key: safe_eval(value) for key, value in config[model_name].items()}
 # Load model parameters
 def load_model_params(config_file, model_name):
     config = configparser.ConfigParser()
@@ -84,40 +64,6 @@ def load_paths_and_suffix(config_file):
         "model_name_suffix": config["Paths"].get("model_name_suffix", "_v1")
     }
     return paths
-
-
-# def train_and_save_models(X, y, model_output, models):
-#     if not os.path.exists(model_output):
-#         os.makedirs(model_output)
-
-#     # Identify categorical and numerical columns
-#     categorical_cols = X.select_dtypes(include=['object', 'category']).columns
-#     numeric_cols = X.select_dtypes(include=[np.number]).columns
-
-#     # Create a column transformer to handle both categorical and numeric columns
-#     preprocessor = ColumnTransformer(
-#         transformers=[
-#             ('num', StandardScaler(), numeric_cols),
-#             ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_cols)
-#         ])
-
-#     for model_name, model in models.items():
-#         pipeline = Pipeline([
-#             ('preprocessor', preprocessor),  # Preprocess categorical and numeric data
-#             ('model', model)
-#         ])
-
-#         # Fit the pipeline with preprocessed data
-#         pipeline.fit(X, y)
-
-#         # Extract feature names after preprocessing
-#         feature_names = pipeline.named_steps['preprocessor'].get_feature_names_out()
-#         pipeline.feature_names = feature_names  # Save feature names to the pipeline
-
-#         # Save the trained model
-#         model_path = os.path.join(model_output, f"{model_name}_model.pkl")
-#         joblib.dump(pipeline, model_path)
-#         print(f"Trained and saved model: {model_name} to {model_path}")
 
 # Train and save selected models
 def train_and_save_models(X, y, paths, models):
@@ -183,17 +129,6 @@ def select_models(config_file):
     
     return selected_models
 
-# def select_features(data):
-#     print("Available features:")
-#     for idx, column in enumerate(data.columns):
-#         print(f"{idx + 1}: {column}")
-#     selected = input("Enter the feature numbers to use (comma-separated) or type 'all' to select all: ")
-    
-#     if selected.lower() == 'all':
-#         return data
-#     else:
-#         selected_indices = [int(i) - 1 for i in selected.split(',')]
-#         return data.iloc[:, selected_indices]
 def select_features(data):
     print("Available features:")
     for idx, column in enumerate(data.columns):
@@ -223,16 +158,6 @@ def normalize_features(data):
             print(f"Applied log transformation on {feature}")
     return data
 
-# def select_training_file(input_folder):
-#     files = [f for f in os.listdir(input_folder) if f.endswith('.csv')]
-#     if not files:
-#         print("No CSV files found in the cleaned_data folder.")
-#         return None
-#     print("Available files for model training:")
-#     for idx, file in enumerate(files, 1):
-#         print(f"{idx}: {file}")
-#     choice = int(input("Select the file number to train the model on: ")) - 1
-#     return os.path.join(input_folder, files[choice])
 
 def select_training_file(input_folder):
     files = [f for f in os.listdir(input_folder) if f.endswith('.csv')]
@@ -284,15 +209,6 @@ def main(config_file="config.txt"):
     # Train and save models
     train_and_save_models(X, y, paths, models)
     print("Training completed and models saved.")
-
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser(description="Train various models on a selected dataset.")
-#     parser.add_argument('--input_folder', type=str, default="../OTH_DATA/cleaned_data", help="Path to the cleaned data folder.")
-#     parser.add_argument('--model_output', type=str, default="../ML_DATA/model_outputs", help="Path to save the trained models.")
-#     parser.add_argument('--config_file', type=str, default="config.txt", help="Path to the model parameter file.")
-    
-#     args = parser.parse_args()
-#     main(args.input_folder, args.model_output)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train various models on a selected dataset.")

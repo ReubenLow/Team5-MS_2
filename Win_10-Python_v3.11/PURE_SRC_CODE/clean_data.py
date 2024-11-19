@@ -53,11 +53,16 @@ def clean_data(data, drop_columns=None, add_target=False, target_column_name="ta
     for column in data.select_dtypes(include=['float64', 'int64']).columns:
         if data[column].isnull().sum() > 0:
             data[column].fillna(data[column].median(), inplace=True)
-
+            
     # Calculate BMI if Height and Weight columns are present
+<<<<<<< HEAD
     if 'Height' in data.columns and 'Weight' in data.columns:
         data['BMI'] = data['Weight'] / ((data['Height']) ** 2)
         data['BMI'] = data['BMI'].round(2)
+=======
+    #if 'Height' in data.columns and 'Weight' in data.columns:
+    #    data['BMI'] = data['Weight'] / ((data['Height'] / 100) ** 2)
+>>>>>>> 68eef471644c973b519daf5de34d4c6436fa3022
 
     # Encoding categorical variables with numbers
     categorical_columns = data.select_dtypes(include=['object']).columns
@@ -195,8 +200,45 @@ def main(config_file="config.txt", selected_file=None):
             validation_output_path = os.path.join(output_folder, f"validation_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
             validation_data.to_csv(validation_output_path, index=False)
             print(f"Saved validation data to {validation_output_path}")
+    summary = generate_encoding_summary(data, cleaned_data)
+    print_encoding_summary(summary)
 
+#function to display mapped encoded numbers to previous said values
+def generate_encoding_summary(original_data, encoded_data):
+    """
+    Generates a summary of the encoding performed on categorical variables.
 
+    Parameters:
+        original_data (pd.DataFrame): The original DataFrame before encoding.
+        encoded_data (pd.DataFrame): The DataFrame after encoding.
+
+    Returns:
+        dict: A dictionary containing the mapping for each categorical column.
+    """
+    summary = {}
+    categorical_columns = original_data.select_dtypes(include=['object']).columns
+
+    for column in categorical_columns:
+        # Check if the column exists in both original and encoded data
+        if column in original_data.columns and column in encoded_data.columns:
+            # Create a mapping of categories to codes
+            original_col = original_data[column].astype('category')
+            mapping = dict(enumerate(original_col.cat.categories))
+            summary[column] = mapping
+
+    return summary
+
+def print_encoding_summary(encoding_summary):
+    """
+    Prints the encoding summary in a readable format.
+
+    Parameters:
+        encoding_summary (dict): The summary dictionary with mappings.
+    """
+    for column, mapping in encoding_summary.items():
+        print(f"\nColumn: {column}")
+        for code, category in mapping.items():
+            print(f"  {code} -> {category}")
 
 
 if __name__ == "__main__":

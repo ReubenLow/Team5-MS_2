@@ -170,10 +170,51 @@ def output_predictions_with_formatting(X_test, y_test, y_pred, output_path):
     wb.save(output_path)
     print(f"Predictions with formatting saved to {output_path}")
 
+def plot_confusion_matrix(cm, labels, output_path):
+    # Increase the figure size
+    plt.figure(figsize=(10, 8))  # Adjust size as needed
+    
+    # Create the confusion matrix plot
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+    disp.plot(cmap='viridis', xticks_rotation=90, values_format='d')  # Rotate x-axis labels and set format
+
+    # Adjust font size
+    plt.title("Confusion Matrix", fontsize=16)
+    plt.xlabel("Predicted label", fontsize=14)
+    plt.ylabel("True label", fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+
+    # Save and close the plot
+    plt.tight_layout()  # Ensures everything fits without overlap
+    plt.savefig(output_path)
+    plt.close()
+    print(f"Confusion Matrix saved to {output_path}")
 
 def evaluate_model(model, X_test, y_test, output_dir, feature_names):
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test) if hasattr(model, "predict_proba") else None
+
+    # Define mappings
+    combined_mappings = {
+        "Obesity_Level": {
+            0: "Insufficient_Weight",
+            1: "Normal_Weight",
+            2: "Obesity_Type_I",
+            3: "Obesity_Type_II",
+            4: "Obesity_Type_III",
+            5: "Overweight_Level_I",
+            6: "Overweight_Level_II"
+        }
+    }
+
+    # Decode labels to string form
+    if y_test is not None:
+        y_test_decoded = y_test.map(combined_mappings["Obesity_Level"])
+        y_pred_decoded = pd.Series(y_pred).map(combined_mappings["Obesity_Level"])
+    else:
+        y_test_decoded = None
+        y_pred_decoded = pd.Series(y_pred).map(combined_mappings["Obesity_Level"])
 
     # Call the feature importance plotting function
     plot_feature_importances(model, output_dir)
@@ -246,11 +287,9 @@ def evaluate_model(model, X_test, y_test, output_dir, feature_names):
             plt.close()
 
     # Confusion Matrix
-    cm = confusion_matrix(y_test, y_pred)
-    ConfusionMatrixDisplay(cm).plot()
-    plt.title("Confusion Matrix")
-    plt.savefig(os.path.join(output_dir, "confusion_matrix.png"))
-    plt.close()
+    cm = confusion_matrix(y_test_decoded, y_pred_decoded, labels=list(combined_mappings["Obesity_Level"].values()))
+    output_cm_path = os.path.join(output_dir, "confusion_matrix.png")
+    plot_confusion_matrix(cm, list(combined_mappings["Obesity_Level"].values()), output_cm_path)
 
     metrics = {
         'accuracy': accuracy_score(y_test, y_pred),
@@ -264,7 +303,8 @@ def evaluate_model(model, X_test, y_test, output_dir, feature_names):
         'mae': mae,
         'rmse': rmse,
         'confusion_matrix': cm.tolist(),
-        'classification_report': classification_report(y_test, y_pred, zero_division=0)
+        # 'classification_report': classification_report(y_test, y_pred, zero_division=0)
+        'classification_report': classification_report(y_test_decoded, y_pred_decoded, zero_division=0)
     }
 
     return metrics

@@ -60,39 +60,66 @@ def calculate_bmi(data):
     return data
 
 def add_readable_columns(data):
-    """
-    Adds two new columns to the DataFrame with readable string labels for MTRANS and Obesity_Level.
-
-    Parameters:
-    - data: pandas DataFrame containing the dataset with MTRANS and Obesity_Level columns.
-
-    Returns:
-    - data: DataFrame with the new readable columns.
-    """
-    # Define the mapping dictionaries
-    mtrans_mapping = {
-        0: "Automobile",
-        1: "Bike",
-        2: "Motorbike",
-        3: "Public_Transportation",
-        4: "Walking"
+    # Define the mapping dictionaries for each encoded column
+    mappings = {
+        "Gender": {
+            0: "Female",
+            1: "Male"
+        },
+        "fam_hist_over-wt": {
+            0: "No",
+            1: "Yes"
+        },
+        "FAVC": {
+            0: "No",
+            1: "Yes"
+        },
+        "CAEC": {
+            0: "Always",
+            1: "Frequently",
+            2: "Sometimes",
+            3: "No"
+        },
+        "SMOKE": {
+            0: "No",
+            1: "Yes"
+        },
+        "SCC": {
+            0: "No",
+            1: "Yes"
+        },
+        "CALC": {
+            0: "Frequently",
+            1: "Sometimes",
+            2: "No"
+        },
+        "MTRANS": {
+            0: "Automobile",
+            1: "Bike",
+            2: "Motorbike",
+            3: "Public_Transportation",
+            4: "Walking"
+        },
+        "Obesity_Level": {
+            0: "Insufficient_Weight",
+            1: "Normal_Weight",
+            2: "Obesity_Type_I",
+            3: "Obesity_Type_II",
+            4: "Obesity_Type_III",
+            5: "Overweight_Level_I",
+            6: "Overweight_Level_II"
+        }
     }
 
-    obesity_level_mapping = {
-        0: "Insufficient_Weight",
-        1: "Normal_Weight",
-        2: "Obesity_Type_I",
-        3: "Obesity_Type_II",
-        4: "Obesity_Type_III",
-        5: "Overweight_Level_I",
-        6: "Overweight_Level_II"
-    }
+    # Iterate through the mapping dictionary to add readable columns
+    for column, mapping in mappings.items():
+        if column in data.columns:
+            readable_column_name = f"{column}_Readable"
+            data[readable_column_name] = data[column].map(mapping)
+            print(f"Added readable column: {readable_column_name}.")
+        else:
+            print(f"Skipping column '{column}' as it is not present in the dataset.")
 
-    # Add new columns with readable strings
-    data["MTRANS_Readable"] = data["MTRANS"].map(mtrans_mapping)
-    data["Obesity_Level_Readable"] = data["Obesity_Level"].map(obesity_level_mapping)
-
-    print("Added readable columns: MTRANS_Readable and Obesity_Level_Readable.")
     return data
 
 

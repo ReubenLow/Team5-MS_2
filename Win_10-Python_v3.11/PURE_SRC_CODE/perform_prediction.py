@@ -325,10 +325,6 @@ def main(config_file="config.txt"):
         print("Classification Report:")
         print(metrics['classification_report'])
         print(f"Accuracy       : {metrics['accuracy']:.4f}")
-        # if isinstance(metrics['roc_auc'], str):
-        #     print(f"ROC AUC        : {metrics['roc_auc']}")
-        # else:
-        #     print(f"ROC AUC        : {metrics['roc_auc']:.4f}")
         if metrics['roc_auc'] is not None:
             print(f"ROC AUC        : {metrics['roc_auc']:.4f}")
         else:
@@ -346,7 +342,6 @@ def main(config_file="config.txt"):
     print(f"Prediction report with confusion matrices saved to {report_path}")
 
 if __name__ == "__main__":
-    # main()
     parser = argparse.ArgumentParser(description="Run model predictions and evaluations.")
     parser.add_argument('--config_file', type=str, default="config.txt", help="Path to the configuration file.")
     

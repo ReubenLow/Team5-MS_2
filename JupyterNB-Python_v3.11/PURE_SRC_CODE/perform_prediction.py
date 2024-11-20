@@ -40,13 +40,6 @@ def select_testing_file(input_folder):
     choice = int(input("Select the file number to test the model on: ")) - 1
     return os.path.join(input_folder, files[choice])
 
-# def load_data(file_path):
-#     data = pd.read_csv(file_path)
-#     target_col = "Obesity_Level"
-#     X_test = data.drop(columns=[target_col])  
-#     y_test = data[target_col]  
-#     return X_test, y_test
-
 def load_data(file_path):
     data = pd.read_csv(file_path)
     target_col = "Obesity_Level"
@@ -130,10 +123,6 @@ def output_predictions_with_formatting(X_test, y_test, y_pred, output_path):
     for col, mapping in combined_mappings.items():
         if col in X_test.columns:
             X_test[col] = X_test[col].map(mapping)
-
-    # Add actual and predicted columns to the dataset
-    # X_test["Actual_Obesity_Level"] = y_test.map(combined_mappings["Obesity_Level"])
-    # X_test["Predicted_Obesity_Level"] = pd.Series(y_pred).map(combined_mappings["Obesity_Level"])
 
     # Add the predicted column
     X_test["Predicted_Obesity_Level"] = pd.Series(y_pred).map(combined_mappings["Obesity_Level"])
@@ -419,22 +408,6 @@ def main(config_file="config.txt"):
         # print(f"Model: {model_name} - Metrics: {metrics}")
 
         # Format and print the metrics
-        # print(f"\n{'='*40}")
-        # print(f"Model: {model_name}")
-        # print(f"{'-'*40}")
-        # print("Classification Report:")
-        # print(metrics['classification_report'])
-        # print(f"Accuracy       : {metrics['accuracy']:.4f}")
-        # if metrics['roc_auc'] is not None:
-        #     print(f"ROC AUC        : {metrics['roc_auc']:.4f}")
-        # else:
-        #     print("ROC AUC        : Not applicable (e.g., no probabilities available).")
-        # print(f"MSE            : {metrics['mse']:.4f}")
-        # print(f"MAE            : {metrics['mae']:.4f}")
-        # print(f"RMSE           : {metrics['rmse']:.4f}")
-        # print("Confusion Matrix:")
-        # print(metrics['confusion_matrix'])
-        # print(f"{'='*40}\n")
         print(f"\n{'='*40}")
         print(f"Model: {model_name}")
         print(f"{'-'*40}")
@@ -483,7 +456,6 @@ def main(config_file="config.txt"):
     print(f"Prediction report with confusion matrices saved to {report_path}")
 
 if __name__ == "__main__":
-    # main()
     parser = argparse.ArgumentParser(description="Run model predictions and evaluations.")
     parser.add_argument('--config_file', type=str, default="config.txt", help="Path to the configuration file.")
     

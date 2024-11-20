@@ -139,9 +139,6 @@ def main(config_file="config.txt", selected_file=None):
     split_data = input("Do you want to split the data into training and testing sets? (yes/no): ").strip().lower() == "yes"
     if split_data:
         try:
-            # test_size = float(input("Enter the test size (e.g. 0.2 for 20% test size): "))
-            # random_state = int(input("Enter the random state for splitting: "))
-            # print(f"Splitting data into training and testing sets with test size {test_size} and random state {random_state}...")
             train_percentage = float(input("Enter the percentage for training data (e.g., 80 for 80%): ")) / 100
             validation_percentage = float(input("Enter the percentage for validation data (e.g., 10 for 10%): ")) / 100
             test_percentage = float(input("Enter the percentage for test data (e.g., 10 for 10%): ")) / 100
@@ -150,9 +147,6 @@ def main(config_file="config.txt", selected_file=None):
             if not abs(train_percentage + validation_percentage + test_percentage - 1) < 1e-5:
                 raise ValueError("Percentages must add up to 100%!")
         except ValueError as e:
-            # print("Invalid input. Using default test size of 0.2 and random state of 42.")
-            # test_size = 0.2
-            # random_state = 42
             print(f"Invalid input: {e}")
             print("Using default split: 70% train, 15% validation, 15% test.")
             train_percentage, validation_percentage, test_percentage = 0.7, 0.15, 0.15
@@ -168,14 +162,6 @@ def main(config_file="config.txt", selected_file=None):
 
             # Split the remaining data into validation and test sets
             validation_data, test_data = train_test_split(temp_data, test_size=(test_percentage / (validation_percentage + test_percentage)), random_state=42)
-                
-        # Split the data into training and testing sets
-        # train_data, test_data = train_test_split(cleaned_data, test_size=test_size, random_state=random_state)
-        # Perform the first split to separate training data
-        # train_data, temp_data = train_test_split(cleaned_data, test_size=(validation_percentage + test_percentage), random_state=42) # v1
-
-        # Split the remaining data into validation and test sets
-        # validation_data, test_data = train_test_split(temp_data, test_size=(test_percentage / (validation_percentage + test_percentage)), random_state=42) # v1
 
         # Generate filenames for the split datasets
         train_output_path = os.path.join(output_folder, f"train_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")
@@ -189,7 +175,6 @@ def main(config_file="config.txt", selected_file=None):
 
         print(f"Saved training data to {train_output_path}")
         print(f"Saved testing data to {test_output_path}")
-        # print(f"Saved validation data to {validation_output_path}")
 
         if validation_data is not None:
             validation_output_path = os.path.join(output_folder, f"validation_{selected_file.split('.')[0]}{cleaned_file_suffix}.csv")

@@ -52,7 +52,7 @@ subsample = 0.8
 [Paths]
 input_folder_clean = ../OTH_DATA/training_data
 output_folder_clean = ../OTH_DATA/cleaned_data
-cleaned_file_suffix = _TESTCASE3
+cleaned_file_suffix = _PRESENTATION
 input_folder_eda = ../OTH_DATA/cleaned_data
 output_folder_eda = ../EDA_DATA
 eda_file_suffix = _v1

@@ -1,4 +1,3 @@
-#VERSION 1 - WORKING CLI MENU
 #!/bin/bash
 
 # Display the CLI menu

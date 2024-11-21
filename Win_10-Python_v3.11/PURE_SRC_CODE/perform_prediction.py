@@ -99,6 +99,11 @@ def output_predictions_with_formatting(X_test, y_test, y_pred, output_path):
     X_test["Actual_Obesity_Level"] = y_test.map(combined_mappings["Obesity_Level"])
     X_test["Predicted_Obesity_Level"] = pd.Series(y_pred).map(combined_mappings["Obesity_Level"])
 
+    # Save to CSV
+    csv_path = output_path.replace(".xlsx", ".csv")
+    X_test.to_csv(csv_path, index=False)
+    print(f"Predictions saved to CSV at {csv_path}")
+
     # Create a workbook and worksheet
     wb = Workbook()
     ws = wb.active
